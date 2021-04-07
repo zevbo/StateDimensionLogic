@@ -12,7 +12,7 @@ module type SD = sig
   val hash : t -> int
 end
 
-module RobotState (SD : SD) = struct
+module Robot_state (SD : SD) = struct
   type t = { data : (SD.t, float) Hashtbl.t }
 
   let create () = { data = Hashtbl.create (module SD) }

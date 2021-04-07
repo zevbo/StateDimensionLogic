@@ -8,7 +8,7 @@ module type SD = sig
     val hash : t -> int
 end
 
-module RobotState(SD: SD) : sig 
+module Robot_state(SD: SD) : sig 
     type t
 
     val create : unit -> t
