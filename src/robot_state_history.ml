@@ -2,7 +2,9 @@ open! Core
 open Robot_state
 
 module Robot_state_history (SD : SD) = struct
-  type t = { states : Robot_state(SD).t Static_deque.t }
+  module Robot_state = Robot_state (SD)
+
+  type t = { states : Robot_state.t Static_deque.t }
 
   let create ~max_length = { states = Static_deque.create ~max_length }
 
