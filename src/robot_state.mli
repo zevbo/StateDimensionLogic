@@ -5,7 +5,7 @@ module type SD = sig
     type t [@@deriving sexp, hash, compare]
 end
 
-module Robot_state(SD: SD) : sig 
+module F(SD: SD) : sig 
     type t
 
     (** [create ()] creates a [t] with no data *)

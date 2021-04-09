@@ -4,7 +4,7 @@ module type SD = sig
   type t [@@deriving sexp, hash, compare]
 end
 
-module Robot_state (SD : SD) = struct
+module F (SD : SD) = struct
   type t = { data : (SD.t, float) Hashtbl.t }
 
   let create () = { data = Hashtbl.create (module SD) }

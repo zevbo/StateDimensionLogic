@@ -1,13 +1,6 @@
 open! Core
 open Src
 
-module A : Robot_state.SD -> sig
-    type t [@@deriving sexp, hash, compare]
-end
-
-module Comb (SD : Robot_state.SD) : sig
-    type t 
-
-    val create : (module Est.Est) -> 'a -> t
-
+module F (SD : Robot_state.SD) : sig
+    val create : Est.F(SD).t list -> f:(unit -> int) -> Est.F(SD).t
 end

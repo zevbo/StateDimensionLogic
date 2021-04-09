@@ -1,8 +1,7 @@
 open! Core
-open Robot_state
 
-module Robot_state_history (SD : SD) = struct
-  module Robot_state = Robot_state (SD)
+module F (SD : Robot_state.SD) = struct
+  module Robot_state = Robot_state.F (SD)
 
   type t = { states : Robot_state.t Static_deque.t }
 
