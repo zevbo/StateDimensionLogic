@@ -1,55 +1,57 @@
 open! Core
 
-module type SD = sig
-  type 'a t [@@deriving sexp, hash, compare]
-end
-
 (* I think I want this to be mutable *)
 
-module F (SD : SD) = struct
-  type t = { data : Univ_map.t }
+type t = { data : Univ_map.t }
 
-  let sd_type sexp_of sd = Type_equal.Id.create ~name:(SD.sexp_of_t sexp_of sd) sexp_of
-  let create () = { data = Univ_map.empty }
-  let umap_f f t sexp_of sd = f t (sd_type sexp_of sd)
-  let memt = umap_f Univ_map.mem
-  let findt t sexp_of sd = umap_f Univ_map.find t sexp_of sd
+let create () = { data = Univ_map.empty }
+let mem t (sd : 'a Sd.t) = Univ_map.mem t.data sd
+let find t (sd : 'a Sd.t) = Univ_map.find t.data sd
+let set t (sd : 'a Sd.t) data = { data = Univ_map.set t.data sd data }
+let remove t (sd : 'a Sd.t) = { data = Univ_map.remove t.data sd }
 
-  let sett t (sexp_of : 'a -> Sexp.t) (sd : 'a SD.t) data =
-    Univ_map.set t.data (sd_type sexp_of sd) data
-  ;;
+let memp t (sd_p : Sd.Packed.t) =
+  match sd_p with
+  | P sd -> Univ_map.mem t.data sd
+;;
 
-  let removet t (sexp_of : 'a -> Sexp.t) (sd : 'a SD.t) =
-    Univ_map.remove t.data (sd_type sexp_of sd)
-  ;;
+let removep t (sd_p : Sd.Packed.t) =
+  match sd_p with
+  | P sd -> { data = Univ_map.remove t.data sd }
+;;
 
-  let mem t (sexp_of : 'a -> Sexp.t) (sd : float SD.t) =
-    Univ_map.mem t.data (sd_type sexp_of sd)
-  ;;
+let keys t =
+  let univ_map_list = Univ_map.to_alist t.data in
+  List.map univ_map_list ~f:(fun packed ->
+      match packed with
+      | T (id, _data) -> Sd.pack id)
+;;
 
-  let find t = findt t Float.sexp_of_t
-  let set t = sett t Float.sexp_of_t
-  let remove t = removet t Float.sexp_of_t
-  let keys t = Univ_map.to_alist t.data
+let use_sd t1 t2 sd =
+  match find t2 sd with
+  | Some data -> set t1 sd data
+  | None -> t1
+;;
 
-  let use_sd t1 t2 sd =
-    match find t2 sd with
+let use_sd_p t1 t2 (packed : Sd.Packed.t) =
+  match packed with
+  | P sd ->
+    (match find t2 sd with
     | Some data -> set t1 sd data
-    | None -> ()
-  ;;
+    | None -> t1)
+;;
 
-  let use t1 ?(to_use = None) t2 =
-    let use_sd = use_sd t1 t2 in
-    match to_use with
-    | Some sds_to_use -> Set.iter sds_to_use ~f:use_sd
-    | None -> List.iter (keys t2) ~f:use_sd
-  ;;
+let use t1 ?(to_use = None) t2 =
+  match to_use with
+  | Some sds_to_use -> Set.fold sds_to_use ~init:t1 ~f:(fun t sd -> use_sd t t2 sd)
+  | None -> List.fold_left (keys t2) ~init:t1 ~f:(fun t sd -> use_sd_p t t2 sd)
+;;
+
+(*
 
   let use_extras t1 t2 =
     List.iter (keys t2) ~f:(fun sd -> if not (mem t1 sd) then use_sd t1 t2 sd)
   ;;
+  *)
 
-  let trim_to t sd_set =
-    List.iter (keys t) ~f:(fun sd -> if not (Set.mem sd_set sd) then remove t sd)
-  ;;
-end
+let trim_to t sds = use (create ()) ~to_use:sds t
