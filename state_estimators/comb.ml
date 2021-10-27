@@ -1,45 +1,45 @@
 open! Core
 open Src
 
-module F (Sd : Robot_state.Sd) = struct
-  module Sd_set = Set.Make (Sd)
+type switch_res =
+  | Est_1
+  | Est_2
 
-  let create (est_l : Est.F(Sd).t list) ~f =
-    assert (not (List.is_empty est_l));
-    (object (this)
-       val est_l = est_l
+module Statics (Est1 : Est.W_state) (Est2 : Est.W_state) = struct
+  let current_sds_required =
+    Hash_set.union Est1.current_sds_required Est2.current_sds_required
+  ;;
 
-       method get_est =
-         let i = f () in
-         match List.nth est_l i with
-         | Some est -> est
-         | None ->
-           raise
-             (Invalid_argument
-                (sprintf
-                   "Attempted to use out of range estimator of Comb estimator. Index: \
-                    %d, Length: %d"
-                   i
-                   (List.length est_l)))
+  let past_sds_estimating =
+    Hash_set.union Est1.past_sds_estimating Est2.past_sds_estimating
+  ;;
 
-       method union_sets ~f =
-         List.fold est_l ~init:Sd_set.empty ~f:(fun acc est -> Set.union acc (f est))
+  let sds_estimating = Hash_set.union Est1.sds_estimating Est2.sds_estimating
+  let measures = Est1.measures || Est2.measures
+end
 
-       method current_sds_required =
-         this#union_sets ~f:(fun est -> est#current_sds_required)
+module E (Est1 : Est.W_state) (Est2 : Est.W_state) = struct
+  include Statics (Est1) (Est2)
 
-       method past_sds_required = this#union_sets ~f:(fun est -> est#past_sds_required)
-       method sds_estimating = this#union_sets ~f:(fun est -> est#sds_estimating)
+  type t =
+    { est1 : Est1.t
+    ; est2 : Est2.t
+    ; switch : Robot_state_history.t -> switch_res
+    }
 
-       method uses_measrumeants =
-         List.fold
-           (List.map est_l ~f:(fun est -> est#uses_measrumeants))
-           ~init:true
-           ~f:( || )
+  let create est1 est2 switch = { est1; est2; switch }
 
-       method estimate = this#get_est#estimate
-       method get_uncertianty = this#get_est#get_uncertianty
-     end
-      :> Est.F(Sd).t)
+  (* Maybe should still update the one we're not using? *)
+  let est t state_history =
+    match t.switch state_history with
+    | Est_1 -> Est1.est t.est1 state_history
+    | Est_2 -> Est2.est t.est2 state_history
+  ;;
+
+  (* TODO: should allow more types of uncertainty, as well as a function that gives covariance *)
+  let uncertainty t state_history sd =
+    match t.switch state_history with
+    | Est_1 -> Est1.uncertainty t.est1 state_history sd
+    | Est_2 -> Est2.uncertainty t.est2 state_history sd
   ;;
 end

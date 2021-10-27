@@ -1,12 +1,32 @@
 open! Core
 open Src
 
-module F (Sd : Robot_state.Sd) = struct
-  type t =
-    < current_sds_required : Set.Make(Sd).t
-    ; past_sds_required : Set.Make(Sd).t
-    ; sds_estimating : Set.Make(Sd).t
-    ; estimate : Robot_state_history.F(Sd).t -> Robot_state.F(Sd).t
-    ; uses_measrumeants : bool
-    ; get_uncertianty : Sd.t -> Uncertianty.t option >
+(* TODO: decrease duplication *)
+
+module type W_state = sig
+  type t
+
+  val current_sds_required : Sd.Packed.t Hash_set.t
+  val past_sds_estimating : Sd.Packed.t Hash_set.t
+  val sds_estimating : Sd.Packed.t Hash_set.t
+  val est : t -> Robot_state_history.t -> Robot_state.t
+  val measures : bool
+
+  (* TODO: should allow more types of uncertainty, as well as a function that gives covariance *)
+  val uncertainty : t -> Robot_state_history.t -> float Sd.t -> Uncertianty.t option
+end
+
+module type Wo_state = sig
+  type t = unit
+
+  val current_sds_required : Sd.Packed.t Hash_set.t
+  val past_sds_estimating : Sd.Packed.t Hash_set.t
+  val sds_estimating : Sd.Packed.t Hash_set.t
+  val est : t -> Robot_state_history.t -> Robot_state.t
+  val est_stateless : Robot_state_history.t -> Robot_state.t
+  val measures : bool
+
+  (* TODO: should allow more types of uncertainty, as well as a function that gives covariance *)
+  val uncertainty : t -> Robot_state_history.t -> float Sd.t -> Uncertianty.t option
+  val uncertainty_stateless : Robot_state_history.t -> float Sd.t -> Uncertianty.t option
 end
