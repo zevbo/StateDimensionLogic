@@ -16,6 +16,15 @@ let get t index =
   | _ -> None
 ;;
 
+let get_last_default t index =
+  let eff_index =
+    if index >= Deque.length t.data && index < t.max_length
+    then Deque.length t.data - 1
+    else index
+  in
+  get t eff_index
+;;
+
 let add t el =
   if length t = t.max_length then Deque.drop_back t.data;
   Deque.enqueue_front t.data el

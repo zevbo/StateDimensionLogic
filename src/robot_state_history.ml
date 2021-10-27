@@ -1,13 +1,60 @@
 open! Core
 
-module F (Sd : Robot_state.Sd) = struct
-  module Robot_state = Robot_state.F (Sd)
+type tick = int
 
-  type t = { states : Robot_state.t Static_deque.t }
+type t =
+  { past_states : (tick, Robot_state.t, Int.comparator_witness) Map.t
+  ; curr_state : Robot_state.t
+  ; tick : tick
+  ; max_length : int
+  }
 
-  let create ~max_length = { states = Static_deque.create ~max_length }
-  let get_state t i = Static_deque.get t.states i
-  let get_current_state t = get_state t 0
-  let add_state t state = Static_deque.add t.states state
-  let copy t = { states = Static_deque.copy t.states }
-end
+let create ~max_length =
+  { past_states = Map.empty (module Int)
+  ; max_length
+  ; tick = 0
+  ; curr_state = Robot_state.create ()
+  }
+;;
+
+let nth_to_tick t n = (t.tick - n) % n
+
+let nth_state t n =
+  if n = 0 then Some t.curr_state else Map.find t.past_states (nth_to_tick t n)
+;;
+
+let curr_state t = t.curr_state
+let find t sd = Robot_state.find (curr_state t) sd
+
+let find_past t n sd =
+  match nth_state t n with
+  | None -> None
+  | Some state -> Robot_state.find state sd
+;;
+
+let mem t sd = Robot_state.mem (curr_state t) sd
+
+let mem_past t n sd =
+  match nth_state t n with
+  | None -> None
+  | Some state -> Some (Robot_state.mem state sd)
+;;
+
+let memp t sd = Robot_state.memp (curr_state t) sd
+
+let memp_past t n sd =
+  match nth_state t n with
+  | None -> None
+  | Some state -> Some (Robot_state.memp state sd)
+;;
+
+let add_state t =
+  let tick = t.tick + 1 in
+  let curr_state = Robot_state.create () in
+  let past_states = Map.set t.past_states ~key:t.tick ~data:t.curr_state in
+  { t with tick; curr_state; past_states }
+;;
+
+let use t (state : Robot_state.t) =
+  { t with curr_state = Robot_state.use t.curr_state state }
+;;
