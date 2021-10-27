@@ -58,3 +58,8 @@ let add_state t =
 let use t (state : Robot_state.t) =
   { t with curr_state = Robot_state.use t.curr_state state }
 ;;
+
+let max_length t = t.max_length
+
+(* TODO: I can make length O(log(n)^2) time complexity *)
+let length t = 1 + Map.length t.past_states
