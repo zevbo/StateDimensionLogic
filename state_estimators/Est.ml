@@ -31,25 +31,63 @@ end
 
 module Applicable = struct
   type t = P : (module W_state with type t = 'a) * 'a -> t
-  type model = t list
+  type model = { ts : t list }
 
   let create (type a) (module W_state : W_state with type t = a) (w_t : a) =
     P ((module W_state), w_t)
   ;;
 
   let apply (state_history : Robot_state_history.t) (model : model) =
-    List.fold_left model ~init:state_history ~f:(fun state_history t ->
+    List.fold_left model.ts ~init:state_history ~f:(fun state_history t ->
         match t with
         | P ((module W_state), t) ->
           Robot_state_history.use state_history (W_state.est t state_history))
   ;;
 
+  exception Premature_sd_req of Sd.Packed.t
+  exception Overwriting_sd_estimate of Sd.Packed.t
+
   type check_status =
     | Passed
-    | Failed
+    | Premature of Sd.Packed.t
+    | Overwrite of Sd.Packed.t
 
-  let check model =
-    ignore model;
-    Passed
+  let check (model : model) =
+    let finish _ = Passed in
+    let current_check =
+      List.fold_until
+        ~init:(Hash_set.create (module Sd.Packed))
+        ~f:(fun guaranteed t ->
+          let required, estimating =
+            match t with
+            | P ((module W_state), _t) ->
+              W_state.current_sds_required, W_state.sds_estimating
+          in
+          let premature_sd =
+            List.find (Hash_set.to_list required) ~f:(fun sd ->
+                not (Hash_set.mem guaranteed sd))
+          in
+          let overwritten_sd =
+            List.find (Hash_set.to_list estimating) ~f:(Hash_set.mem guaranteed)
+          in
+          match premature_sd, overwritten_sd with
+          | Some premature_sd, _ ->
+            print_endline (String.t_of_sexp (Sd.Packed.sexp_of_t premature_sd));
+            Continue_or_stop.Stop (Premature premature_sd)
+          | None, Some overwritten_sd -> Continue_or_stop.Stop (Overwrite overwritten_sd)
+          | None, None -> Continue_or_stop.Continue (Hash_set.union guaranteed estimating))
+        ~finish
+        model.ts
+    in
+    (* todo: add past check as well *)
+    current_check
+  ;;
+
+  let create_model ts =
+    let model = { ts } in
+    match check model with
+    | Passed -> model
+    | Premature sd -> raise (Premature_sd_req sd)
+    | Overwrite sd -> raise (Overwriting_sd_estimate sd)
   ;;
 end

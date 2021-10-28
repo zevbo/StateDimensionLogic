@@ -1,10 +1,11 @@
 open! Core
 
-type 'a t = 'a Type_equal.Id.t [@@deriving sexp_of]
+type 'a t = 'a Type_equal.Id.t
 
 let create name sexp_of = Type_equal.Id.create ~name sexp_of
 let equal = Type_equal.Id.same
 let hash = Type_equal.Id.hash
+let sexp_of_t t = String.sexp_of_t (Type_equal.Id.name t)
 
 (* unsafe! if two values hash to the same thing, they will throw an error *)
 let compare t1 t2 =
@@ -17,8 +18,13 @@ let compare t1 t2 =
 ;;
 
 module Packed = struct
-  type 'a sd_t = 'a t [@@deriving sexp_of]
-  type t = P : _ sd_t -> t [@@deriving sexp_of]
+  type 'a sd_t = 'a t
+  type t = P : _ sd_t -> t
+
+  let sexp_of_t t =
+    match t with
+    | P sd_t -> sexp_of_t sd_t
+  ;;
 
   let create t = P t
 

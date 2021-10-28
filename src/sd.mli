@@ -2,12 +2,13 @@ open! Core
 
 (* todo: is RobotState.Id.t better than SD.t? *)
 (* todo: is it okay that this is shown? probably *)
-type 'a t = 'a Type_equal.Id.t [@@deriving sexp_of]
+type 'a t = 'a Type_equal.Id.t
 
 val create : string -> ('a -> Sexp.t) -> 'a t
 val equal : 'a t -> 'b t -> bool
 val hash : 'a t -> int
 val compare : 'a t -> 'a t -> int
+val sexp_of_t : 'a t -> Sexp.t
 
 module Packed : sig
   (* todo: this shouldn't be in the mli*)

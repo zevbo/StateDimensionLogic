@@ -31,14 +31,9 @@ end
 
 module Applicable : sig
   type t
-  type model = t list
+  type model
 
   val create : (module W_state with type t = 'a) -> 'a -> t
+  val create_model : t list -> model
   val apply : Robot_state_history.t -> model -> Robot_state_history.t
-
-  type check_status =
-    | Passed
-    | Failed
-
-  val check : model -> check_status
 end

@@ -2,13 +2,14 @@ open! Core
 open State_estimators
 open Src
 
-let applicables =
-  [ Est.Applicable.create (module Update_v) (Update_v.create ())
-  ; Est.Applicable.create (module Update_x) (Update_x.create ())
-  ]
+let model =
+  Est.Applicable.create_model
+    [ Est.Applicable.create (module Update_v) (Update_v.create ())
+    ; Est.Applicable.create (module Update_x) (Update_x.create ())
+    ]
 ;;
 
-let tick state_history = Est.Applicable.apply (Rsh.add_state state_history) applicables
+let tick state_history = Est.Applicable.apply (Rsh.add_state state_history) model
 
 let print_data state_history =
   printf
