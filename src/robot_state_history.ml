@@ -58,8 +58,8 @@ let add_state t =
   { t with tick; curr_state; past_states }
 ;;
 
-let use t (state : Robot_state.t) =
-  { t with curr_state = Robot_state.use t.curr_state state }
+let use t ?(to_use = None) (state : Robot_state.t) =
+  { t with curr_state = Robot_state.use ~to_use t.curr_state state }
 ;;
 
 let max_length t = t.max_length

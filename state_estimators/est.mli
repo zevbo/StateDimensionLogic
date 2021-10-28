@@ -31,9 +31,15 @@ end
 
 module Applicable : sig
   type t
+
+  type safety =
+    | Safe
+    | Warnings
+    | Unsafe
+
   type model
 
   val create : (module W_state with type t = 'a) -> 'a -> t
-  val create_model : t list -> model
+  val create_model : ?safety:safety -> t list -> model
   val apply : Robot_state_history.t -> model -> Robot_state_history.t
 end

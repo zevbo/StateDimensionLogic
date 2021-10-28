@@ -31,17 +31,61 @@ end
 
 module Applicable = struct
   type t = P : (module W_state with type t = 'a) * 'a -> t
-  type model = { ts : t list }
+
+  type safety =
+    | Safe
+    | Warnings
+    | Unsafe
+
+  type model =
+    { ts : t list
+    ; safety : safety
+    }
 
   let create (type a) (module W_state : W_state with type t = a) (w_t : a) =
     P ((module W_state), w_t)
   ;;
 
+  exception Missing_sd of Sd.Packed.t
+  exception Extra_sd of Sd.Packed.t
+
+  let packed_to_str packed = String.t_of_sexp (Sd.Packed.sexp_of_t packed)
+
   let apply (state_history : Robot_state_history.t) (model : model) =
     List.fold_left model.ts ~init:state_history ~f:(fun state_history t ->
         match t with
         | P ((module W_state), t) ->
-          Robot_state_history.use state_history (W_state.est t state_history))
+          let estimated_state = W_state.est t state_history in
+          (match model.safety with
+          | Unsafe -> ()
+          | Safe | Warnings ->
+            let missing =
+              Hash_set.find
+                ~f:(fun key -> not (Robot_state.memp estimated_state key))
+                W_state.sds_estimating
+            in
+            let extra =
+              List.find
+                ~f:(fun key -> not (Hash_set.mem W_state.sds_estimating key))
+                (Robot_state.keys estimated_state)
+            in
+            (match model.safety, missing, extra with
+            | Unsafe, _, _ -> (* should never reach here *) ()
+            | Safe, Some sd, _ -> raise (Missing_sd sd)
+            | Safe, None, Some sd -> raise (Extra_sd sd)
+            | Warnings, Some sd, _ ->
+              printf
+                "Est.Applicable warning: Detected missing sd %s during application"
+                (packed_to_str sd)
+            | Warnings, None, Some sd ->
+              printf
+                "Est.Applicable warning: Detected extra sd %s during application"
+                (packed_to_str sd)
+            | _, None, None -> ()));
+          Robot_state_history.use
+            state_history
+            ~to_use:(Some (Hash_set.to_list W_state.sds_estimating))
+            estimated_state)
   ;;
 
   exception Premature_sd_req of Sd.Packed.t
@@ -83,11 +127,27 @@ module Applicable = struct
     current_check
   ;;
 
-  let create_model ts =
-    let model = { ts } in
-    match check model with
-    | Passed -> model
-    | Premature sd -> raise (Premature_sd_req sd)
-    | Overwrite sd -> raise (Overwriting_sd_estimate sd)
+  let create_model ?(safety = Safe) ts =
+    let model = { safety; ts } in
+    match safety with
+    | Unsafe -> model
+    | Safe ->
+      (match check model with
+      | Passed -> model
+      | Premature sd -> raise (Premature_sd_req sd)
+      | Overwrite sd -> raise (Overwriting_sd_estimate sd))
+    | Warnings ->
+      (match check model with
+      | Passed -> model
+      | Premature sd ->
+        printf
+          "Est.Applicable warning: Detected premature require of sd %s\n"
+          (packed_to_str sd);
+        model
+      | Overwrite sd ->
+        printf
+          "Est.Applicable warning: Detected possible overwritte of sd %s\n"
+          (packed_to_str sd);
+        model)
   ;;
 end
