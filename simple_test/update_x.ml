@@ -6,7 +6,7 @@ type t = unit
 let create () = ()
 let hash_of_list = Hash_set.of_list (module Sd.Packed)
 let current_sds_required = hash_of_list [ Sd.pack Sds.v ]
-let past_sds_required = hash_of_list [ Sd.pack Sds.x ]
+let past_sds_required = hash_of_list [ Sd.pack Sds.x; Sd.pack Sds.what ]
 let sds_estimating = hash_of_list [ Sd.pack Sds.x ]
 
 let est_stateless state_history =

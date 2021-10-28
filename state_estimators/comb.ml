@@ -6,12 +6,20 @@ type switch_res =
   | Est_2
 
 module Statics (Est1 : Est.W_state) (Est2 : Est.W_state) = struct
+  exception Unequal_estimation
+
+  let sds_estimating =
+    let diff = Hash_set.diff Est1.sds_estimating Est2.sds_estimating in
+    if Hash_set.length diff > 0
+    then raise Unequal_estimation
+    else Hash_set.copy Est1.sds_estimating
+  ;;
+
   let current_sds_required =
     Hash_set.union Est1.current_sds_required Est2.current_sds_required
   ;;
 
   let past_sds_required = Hash_set.union Est1.past_sds_required Est2.past_sds_required
-  let sds_estimating = Hash_set.union Est1.sds_estimating Est2.sds_estimating
 end
 
 module E (Est1 : Est.W_state) (Est2 : Est.W_state) = struct

@@ -6,6 +6,7 @@ open Src
 module type W_state = sig
   type t
 
+  (* todo: make these immutable *)
   val current_sds_required : Sd.Packed.t Hash_set.t
   val past_sds_required : Sd.Packed.t Hash_set.t
   val sds_estimating : Sd.Packed.t Hash_set.t
@@ -15,17 +16,12 @@ module type W_state = sig
   val uncertainty : t -> Robot_state_history.t -> float Sd.t -> Uncertianty.t option
 end
 
+module type Test = sig end
+
 module type Wo_state = sig
-  type t = unit
+  include W_state with type t = unit
 
-  val current_sds_required : Sd.Packed.t Hash_set.t
-  val past_sds_required : Sd.Packed.t Hash_set.t
-  val sds_estimating : Sd.Packed.t Hash_set.t
-  val est : t -> Robot_state_history.t -> Robot_state.t
   val est_stateless : Robot_state_history.t -> Robot_state.t
-
-  (* TODO: should allow more types of uncertainty, as well as a function that gives covariance *)
-  val uncertainty : t -> Robot_state_history.t -> float Sd.t -> Uncertianty.t option
   val uncertainty_stateless : Robot_state_history.t -> float Sd.t -> Uncertianty.t option
 end
 
@@ -90,41 +86,77 @@ module Applicable = struct
 
   exception Premature_sd_req of Sd.Packed.t
   exception Overwriting_sd_estimate of Sd.Packed.t
+  exception Never_written_req of Sd.Packed.t
+
+  type check_failure =
+    | Premature
+    | Overwrite
+    | Never_written
 
   type check_status =
     | Passed
-    | Premature of Sd.Packed.t
-    | Overwrite of Sd.Packed.t
+    | Failure of check_failure * Sd.Packed.t
+
+  let hash_set_mutable_union h1 h2 = Hash_set.iter h2 ~f:(fun key -> Hash_set.add h1 key)
+
+  let current_check (model : model) =
+    List.fold_until
+      ~init:(Hash_set.create (module Sd.Packed))
+      ~f:(fun guaranteed t ->
+        let required, estimating =
+          match t with
+          | P ((module W_state), _t) ->
+            W_state.current_sds_required, W_state.sds_estimating
+        in
+        let premature_sd =
+          List.find (Hash_set.to_list required) ~f:(fun sd ->
+              not (Hash_set.mem guaranteed sd))
+        in
+        let overwritten_sd =
+          List.find (Hash_set.to_list estimating) ~f:(Hash_set.mem guaranteed)
+        in
+        match premature_sd, overwritten_sd with
+        | Some premature_sd, _ ->
+          print_endline (String.t_of_sexp (Sd.Packed.sexp_of_t premature_sd));
+          Continue_or_stop.Stop (Failure (Premature, premature_sd))
+        | None, Some overwritten_sd ->
+          Continue_or_stop.Stop (Failure (Overwrite, overwritten_sd))
+        | None, None ->
+          hash_set_mutable_union guaranteed estimating;
+          Continue_or_stop.Continue guaranteed)
+      ~finish:(fun _ -> Passed)
+      model.ts
+  ;;
+
+  let past_check (model : model) =
+    let full_estimating = Hash_set.create (module Sd.Packed) in
+    List.iter model.ts ~f:(fun t ->
+        match t with
+        | P ((module W_state), _est) ->
+          hash_set_mutable_union full_estimating W_state.sds_estimating);
+    let non_guranteed set =
+      List.filter (Hash_set.to_list set) ~f:(fun sd ->
+          not (Hash_set.mem full_estimating sd))
+    in
+    let all_non_guaranteed =
+      List.fold
+        (List.map model.ts ~f:(fun t ->
+             match t with
+             | P ((module W_state), _est) -> non_guranteed W_state.past_sds_required))
+        ~init:[]
+        ~f:List.append
+    in
+    match all_non_guaranteed with
+    | [] -> Passed
+    | hd :: _tl -> Failure (Never_written, hd)
+  ;;
 
   let check (model : model) =
-    let finish _ = Passed in
-    let current_check =
-      List.fold_until
-        ~init:(Hash_set.create (module Sd.Packed))
-        ~f:(fun guaranteed t ->
-          let required, estimating =
-            match t with
-            | P ((module W_state), _t) ->
-              W_state.current_sds_required, W_state.sds_estimating
-          in
-          let premature_sd =
-            List.find (Hash_set.to_list required) ~f:(fun sd ->
-                not (Hash_set.mem guaranteed sd))
-          in
-          let overwritten_sd =
-            List.find (Hash_set.to_list estimating) ~f:(Hash_set.mem guaranteed)
-          in
-          match premature_sd, overwritten_sd with
-          | Some premature_sd, _ ->
-            print_endline (String.t_of_sexp (Sd.Packed.sexp_of_t premature_sd));
-            Continue_or_stop.Stop (Premature premature_sd)
-          | None, Some overwritten_sd -> Continue_or_stop.Stop (Overwrite overwritten_sd)
-          | None, None -> Continue_or_stop.Continue (Hash_set.union guaranteed estimating))
-        ~finish
-        model.ts
-    in
+    let current_check = current_check model in
     (* todo: add past check as well *)
-    current_check
+    match current_check with
+    | Passed -> past_check model
+    | status -> status
   ;;
 
   let create_model ?(safety = Safe) ts =
@@ -134,20 +166,20 @@ module Applicable = struct
     | Safe ->
       (match check model with
       | Passed -> model
-      | Premature sd -> raise (Premature_sd_req sd)
-      | Overwrite sd -> raise (Overwriting_sd_estimate sd))
+      | Failure (Premature, sd) -> raise (Premature_sd_req sd)
+      | Failure (Overwrite, sd) -> raise (Overwriting_sd_estimate sd)
+      | Failure (Never_written, sd) -> raise (Never_written_req sd))
     | Warnings ->
       (match check model with
       | Passed -> model
-      | Premature sd ->
-        printf
-          "Est.Applicable warning: Detected premature require of sd %s\n"
-          (packed_to_str sd);
-        model
-      | Overwrite sd ->
-        printf
-          "Est.Applicable warning: Detected possible overwritte of sd %s\n"
-          (packed_to_str sd);
+      | Failure (error, sd) ->
+        let warning =
+          match error with
+          | Premature -> "premature require"
+          | Overwrite -> "possible overwrite"
+          | Never_written -> "unestimated past require"
+        in
+        printf "Est.Applicable warning: Detected %s of sd %s\n" warning (packed_to_str sd);
         model)
   ;;
 end
