@@ -20,8 +20,12 @@ val use : t -> Robot_state.t -> t
 (** [find t sd] is equivilant to [Robot_state.find (curr_state t) sd] *)
 val find : t -> 'a Sd.t -> 'a option
 
+val find_exn : t -> 'a Sd.t -> 'a
+
 (** [find_past t n sd] is equivilant to [Robot_state.find (nth_state t n) sd] *)
 val find_past : t -> int -> 'a Sd.t -> 'a option
+
+val find_past_def : t -> default:'a -> int -> 'a Sd.t -> 'a
 
 (** [mem t sd] is equivilant to [Robot_state.mem (curr_state t) sd] *)
 val mem : t -> 'a Sd.t -> bool
@@ -40,4 +44,3 @@ val max_length : t -> int
 
 (** [length t] returns the length of [t]. O(n) time complexity in the length of [t]. *)
 val length : t -> int
-(* TODO: I can make length O(log(n)^2) time complexity *)

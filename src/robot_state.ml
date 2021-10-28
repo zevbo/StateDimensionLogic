@@ -19,6 +19,7 @@ let rec find t (sd : 'a Sd.t) =
     | None -> find t2 sd)
 ;;
 
+let find_exn t sd = Option.value_exn (find t sd)
 let mem t (sd : 'a Sd.t) = Option.is_some (find t sd)
 
 let rec set t (sd : 'a Sd.t) v =

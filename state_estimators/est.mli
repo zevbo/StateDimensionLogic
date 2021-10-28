@@ -29,27 +29,16 @@ module type Wo_state = sig
   val uncertainty_stateless : Robot_state_history.t -> float Sd.t -> Uncertianty.t option
 end
 
-module Applicable = struct
-  type t = P : (module W_state with type t = 'a) * 'a -> t
+module Applicable : sig
+  type t
   type model = t list
 
-  let create (type a) (module W_state : W_state with type t = a) (w_t : a) =
-    P ((module W_state), w_t)
-  ;;
-
-  let apply (state_history : Robot_state_history.t) (model : model) =
-    List.fold_left model ~init:state_history ~f:(fun state_history t ->
-        match t with
-        | P ((module W_state), t) ->
-          Robot_state_history.use state_history (W_state.est t state_history))
-  ;;
+  val create : (module W_state with type t = 'a) -> 'a -> t
+  val apply : Robot_state_history.t -> model -> Robot_state_history.t
 
   type check_status =
     | Passed
     | Failed
 
-  let check model =
-    ignore model;
-    Passed
-  ;;
+  val check : model -> check_status
 end

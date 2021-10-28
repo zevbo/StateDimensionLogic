@@ -17,6 +17,9 @@ val memp : t -> Sd.Packed.t -> bool
 (** [find t sd] returns [Some] (the current binding) of [sd] in [t], or [None] if no such binding exists. O(log(n)) time complexity in size of [t]. *)
 val find : t -> 'a Sd.t -> 'a option
 
+(** [find_exn t sd] is an unsafe version of find *)
+val find_exn : t -> 'a Sd.t -> 'a
+
 (** [set t sd v] sets the given [sd] to [v]. O(log(n)) time complexity in size of [t]. *)
 val set : t -> 'a Sd.t -> 'a -> t
 

@@ -10,12 +10,8 @@ module Statics (Est1 : Est.W_state) (Est2 : Est.W_state) = struct
     Hash_set.union Est1.current_sds_required Est2.current_sds_required
   ;;
 
-  let past_sds_estimating =
-    Hash_set.union Est1.past_sds_estimating Est2.past_sds_estimating
-  ;;
-
+  let past_sds_required = Hash_set.union Est1.past_sds_required Est2.past_sds_required
   let sds_estimating = Hash_set.union Est1.sds_estimating Est2.sds_estimating
-  let measures = Est1.measures || Est2.measures
 end
 
 module E (Est1 : Est.W_state) (Est2 : Est.W_state) = struct
