@@ -20,7 +20,7 @@ Currently, because it's still starting up, robot state is not available as a sta
 
 ## Overview
 
-There are 5 major concepts in RobotState.
+There are 5 major concepts in RobotState
 - **'a SD.t** (stands for state dimension): a name for a piece of data you would like to store. Examples: yaw : float SD.t, joint2_angle : float SD.t, button_reading : bool SD.t. The type 'a determines the type of value associated with SD.t. 
 - **RobotState.t**: a RobotState.t is an object that stores data about the robot at a single instance in time. It can be though of a map from 'a SD.t to 'a values (a single robot state may store SD.t values of different types).
 - **RobotStateHistory.t**: Stores a sequence of robot states, each one representing a different time stamp. For most robots, there will be one copy that your code treats as the true value, although this is not inforced.
