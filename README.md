@@ -11,6 +11,7 @@ For a small example of it's, see https://github.com/zevbo/RobotState/tree/main/s
 ### Dependencies
 
 RobotState currently depends on dune, core and ppx_jane. If you have opam installed (installation instructrions for opam: https://opam.ocaml.org/doc/Install.html) you can install all other necessary dependencies with:
+
 ```opam install dune core ppx_jane```
 
 ### RobotState Installation
