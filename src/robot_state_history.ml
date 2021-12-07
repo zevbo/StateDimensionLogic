@@ -13,7 +13,7 @@ let create ~max_length =
   { past_states = Map.empty (module Int)
   ; max_length
   ; tick = 0
-  ; curr_state = Robot_state.create ()
+  ; curr_state = Robot_state.empty
   }
 ;;
 
@@ -53,7 +53,7 @@ let memp_past t n sd =
 
 let add_state t =
   let tick = next_tick t t.tick in
-  let curr_state = Robot_state.create () in
+  let curr_state = Robot_state.empty in
   let past_states = Map.set t.past_states ~key:t.tick ~data:t.curr_state in
   { t with tick; curr_state; past_states }
 ;;
