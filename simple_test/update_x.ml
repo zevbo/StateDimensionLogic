@@ -14,7 +14,7 @@ let est_stateless state_history =
     Rsh.find_past_def state_history ~default:0.0 1 Sds.x
     +. Rsh.find_exn state_history Sds.v
   in
-  let state = Robot_state.create () in
+  let state = Robot_state.empty in
   Robot_state.set state Sds.x new_x
 ;;
 

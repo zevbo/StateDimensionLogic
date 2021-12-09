@@ -20,6 +20,14 @@ module Commons = struct
     let state = Rs.set state y 0.0 in
     Rs.set state z 100.0
   ;;
+
+  let build_random sds random =
+    let sds = List.filter sds ~f:(fun _ -> Random.bool ()) in
+    List.fold_left sds ~f:(fun state sd -> Rs.set state sd (random ())) ~init:Rs.empty
+  ;;
+
+  let std_sds = [ x; y; z; a; b; c ]
+  let build_random_std () = build_random std_sds (fun () -> Random.float_range (-1.0) 1.0)
 end
 
 open Commons

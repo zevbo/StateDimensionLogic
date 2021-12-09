@@ -1,6 +1,6 @@
 open! Core
 
-type t
+type t [@@deriving sexp_of]
 
 (** [create ~max_length] creates a new [t] which stores at most [~max_length] states. *)
 val create : max_length:int -> t

@@ -10,7 +10,7 @@ let past_sds_required = hash_of_list [ Sd.pack Sds.v ]
 let sds_estimating = hash_of_list [ Sd.pack Sds.v ]
 
 let est_stateless state_history =
-  let state = Robot_state.create () in
+  let state = Robot_state.empty in
   let diff = 0.1 +. Random.float_range (-0.5) 0.5 in
   Robot_state.set
     state

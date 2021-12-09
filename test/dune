@@ -1,6 +1,6 @@
 (library
  (name test)
- (libraries core src)
+ (libraries core src ounit2)
  (inline_tests)
  (preprocess
   (pps ppx_jane)))
