@@ -5,6 +5,7 @@ module type Model = sig
   type t
 
   val apply : Rsh.t -> t -> Rsh.t
+  val sd_lengths : t -> (Sd.Packed.t, int, Sd.Packed.comparator_witness) Map.t
 end
 
 (* zTODO: maybe add some form of delay? *)

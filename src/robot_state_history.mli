@@ -3,7 +3,11 @@ open! Core
 type t [@@deriving sexp_of]
 
 (** [create ~max_length] creates a new [t] which stores at most [~max_length] states. *)
-val create : max_length:int -> t
+val create
+  :  ?default_length:int
+  -> ?sd_lengths:(Sd.Packed.t, int, Sd.Packed.comparator_witness) Map.t
+  -> unit
+  -> t
 
 (** [get_state t i] returns [Some] of the [i]th most recent state from [t], or [None] if [t] doesn't have more than [i] states. O(log(n)) time complexity in length of [t]. *)
 val nth_state : t -> int -> Robot_state.t option
@@ -12,7 +16,9 @@ val nth_state : t -> int -> Robot_state.t option
 val curr_state : t -> Robot_state.t
 
 (** [add_state t state] adds [state] to [t]. O(log(n)) time complexity in length of [t]. *)
-val add_state : t -> t
+val add_empty_state : t -> t
+
+val add_state : t -> Robot_state.t -> t
 
 (** [use t state] replaces the current state with [Robot_state.use (curr_state t) state] *)
 val use : t -> ?to_use:Sd.set option -> Robot_state.t -> t
@@ -45,3 +51,5 @@ val max_length : t -> int
 
 (** [length t] returns the length of [t]. O(n) time complexity in the length of [t]. *)
 val length : t -> int
+
+val real_store_len : int -> int

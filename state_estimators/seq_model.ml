@@ -132,3 +132,17 @@ let create ?(safety = Safe) estimators =
       printf "Est.Applicable warning: Detected %s of sd %s\n" warning (packed_to_str sd);
       model)
 ;;
+
+let sd_lengths t =
+  let max_indecies =
+    List.fold
+      t.estimators
+      ~init:(Map.empty (module Sd.Packed))
+      ~f:(fun sd_lengths est ->
+        Map.merge_skewed
+          sd_lengths
+          (Sd_lang.dependencies est.logic)
+          ~combine:(fun ~key:_key -> Int.max))
+  in
+  Map.map max_indecies ~f:(fun n -> n + 1)
+;;
