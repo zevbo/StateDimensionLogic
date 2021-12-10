@@ -12,14 +12,20 @@ type t =
   }
 
 exception Missing_sd of Sd.Packed.t
-exception Extra_sd of Sd.Packed.t
+exception Extra_sd of string
 
 let packed_to_str packed = String.t_of_sexp (Sd.Packed.sexp_of_t packed)
+
+let key_dependencies logic =
+  let dep = Sd_lang.dependencies logic in
+  let curr_dep = Map.filter dep ~f:(fun n -> n = 0) in
+  Map.key_set curr_dep
+;;
 
 let apply (state_history : Robot_state_history.t) t =
   List.fold_left t.estimators ~init:state_history ~f:(fun state_history est ->
       let estimated_state = Sd_lang.execute state_history est.logic in
-      let expected_keys = Sd_lang.key_dependencies est.logic in
+      let expected_keys = est.sds_estimating in
       (match t.safety with
       | Unsafe -> ()
       | Safe | Warnings ->
@@ -36,7 +42,7 @@ let apply (state_history : Robot_state_history.t) t =
         (match t.safety, missing, extra with
         | Unsafe, _, _ -> (* should never reach here *) ()
         | Safe, Some sd, _ -> raise (Missing_sd sd)
-        | Safe, None, Some sd -> raise (Extra_sd sd)
+        | Safe, None, Some sd -> raise (Extra_sd (Sd.Packed.to_string sd))
         | Warnings, Some sd, _ ->
           printf
             "Est.Applicable warning: Detected missing sd %s during application"
@@ -68,7 +74,7 @@ let current_check (t : t) =
   List.fold_until
     ~init:(Set.empty (module Sd.Packed))
     ~f:(fun guaranteed t ->
-      let required, estimating = Sd_lang.key_dependencies t.logic, t.sds_estimating in
+      let required, estimating = key_dependencies t.logic, t.sds_estimating in
       let premature_sd = Set.find required ~f:(fun sd -> not (Set.mem guaranteed sd)) in
       let overwritten_sd = Set.find estimating ~f:(Set.mem guaranteed) in
       match premature_sd, overwritten_sd with

@@ -38,6 +38,7 @@ module Packed = struct
       | P sd_t -> sexp_of_t sd_t
     ;;
 
+    let to_string t = Sexp.to_string (sexp_of_t t)
     let create t = P t
 
     let equal t1 t2 =
@@ -62,4 +63,4 @@ end
 
 let pack = Packed.create
 
-type set = (Sd.Packed.t, Sd.Packed.comparator_witness) Set.t
+type set = (Packed.t, Packed.comparator_witness) Set.t

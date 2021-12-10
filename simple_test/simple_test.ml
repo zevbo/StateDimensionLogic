@@ -1,36 +1,17 @@
 open! Core
-open State_estimators
-open Src
+open! State_estimators
 
-let model =
-  Est.Applicable.create_model
-    [ Est.Applicable.create (module Update_v) (Update_v.create ())
-    ; Est.Applicable.create (module Update_x) (Update_x.create ())
-    ]
+let model = Seq_model.create [ Update_v.est; Update_x.est ]
+
+let execution =
+  [%map_open.Sd_lang
+    let v = sd Sds.v
+    and x = sd Sds.x in
+    printf "v: %f, x: %f\n" v x]
 ;;
 
-let tick state_history = Est.Applicable.apply (Rsh.add_state state_history) model
+module Rprogram = Rprogram.M (Seq_model)
 
-let print_data state_history =
-  printf
-    "v: %f, x: %f\n"
-    (Rsh.find_exn state_history Sds.v)
-    (Rsh.find_exn state_history Sds.x)
-;;
-
-let num_ticks = 100
-let max_length = 2
-let state_history = Rsh.create ~max_length
-
-let () =
-  let final =
-    List.fold_left
-      (List.range 0 num_ticks)
-      ~init:state_history
-      ~f:(fun state_history _i ->
-        let updated = tick state_history in
-        print_data updated;
-        updated)
-  in
-  ignore (final : Rsh.t)
-;;
+let program = Rprogram.create model execution
+let ticks = Some 100
+let () = Rprogram.run program ~ticks

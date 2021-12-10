@@ -27,6 +27,7 @@ module Packed : sig
   type 'a sd_t = 'a t
   type t = P : _ sd_t -> t [@@deriving sexp_of, equal, compare]
 
+  val to_string : t -> string
   val create : 'a sd_t -> t
   val hash : t -> int
   val compare : t -> t -> int

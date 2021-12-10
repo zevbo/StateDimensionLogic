@@ -38,6 +38,10 @@ let nth_state t n =
   if n = 0 then Some t.curr_state else Map.find t.past_states (nth_to_tick t n)
 ;;
 
+let max_length t = t.max_length
+
+(* TODO: I can make length O(log(n)^2) time complexity *)
+let length t = 1 + Map.length t.past_states
 let curr_state t = t.curr_state
 let find t sd = Robot_state.find (curr_state t) sd
 let find_exn t sd = Robot_state.find_exn (curr_state t) sd
@@ -49,6 +53,7 @@ let find_past t n sd =
 ;;
 
 let find_past_def t ~default n sd = Option.value ~default (find_past t n sd)
+let find_past_last_def t n sd = find_past t (min n (length t - 1)) sd
 let mem t sd = Robot_state.mem (curr_state t) sd
 
 let mem_past t n sd =
@@ -78,11 +83,6 @@ let add_state t =
 let use t ?(to_use = None) (state : Robot_state.t) =
   { t with curr_state = Robot_state.use ~to_use t.curr_state state }
 ;;
-
-let max_length t = t.max_length
-
-(* TODO: I can make length O(log(n)^2) time complexity *)
-let length t = 1 + Map.length t.past_states
 
 type sexpable_rsh =
   { states : Robot_state.t list

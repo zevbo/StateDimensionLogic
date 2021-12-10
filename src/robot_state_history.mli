@@ -26,6 +26,7 @@ val find_exn : t -> 'a Sd.t -> 'a
 val find_past : t -> int -> 'a Sd.t -> 'a option
 
 val find_past_def : t -> default:'a -> int -> 'a Sd.t -> 'a
+val find_past_last_def : t -> int -> 'a Sd.t -> 'a option
 
 (** [mem t sd] is equivilant to [Robot_state.mem (curr_state t) sd] *)
 val mem : t -> 'a Sd.t -> bool

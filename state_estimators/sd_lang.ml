@@ -2,11 +2,16 @@ open! Core
 open Src
 
 module T = struct
+  type 'a default =
+    | Last
+    | V of 'a
+
   type _ t =
     | Return : 'a -> 'a t
     | Map2 : 'a t * 'b t * ('a -> 'b -> 'c) -> 'c t
-    | Sd_history : 'a Sd.t * int -> (int -> 'a option) t
     | Sd : 'a Sd.t -> 'a t
+    | Sd_past : 'a Sd.t * int * 'a default -> 'a t
+    | Sd_history : 'a Sd.t * int -> (int -> 'a option) t
     | Full_rsh : unit -> Rsh.t t
 end
 
@@ -33,18 +38,21 @@ let rec dependencies
         | `Left v1 -> Some v1
         | `Right v2 -> Some v2)
   | Sd sd -> dependency_of_list [ Sd.pack sd, 0 ]
+  | Sd_past (sd, n, _default) -> dependency_of_list [ Sd.pack sd, n ]
   | Sd_history (sd, n) -> dependency_of_list [ Sd.pack sd, n ]
 ;;
-
-let key_dependencies t = Map.key_set (dependencies t)
 
 let rec execute : 'a. Rsh.t -> 'a t -> 'a =
   fun (type a) (rsh : Robot_state_history.t) (t : a t) ->
    match t with
    | Return a -> a
    | Map2 (a, b, f) -> f (execute rsh a) (execute rsh b)
-   | Sd_history (sd, _size) -> fun i -> Rsh.find_past rsh i sd
    | Sd sd -> Rsh.find_exn rsh sd
+   | Sd_past (sd, n, default) ->
+     (match default with
+     | V default -> Rsh.find_past_def rsh n sd ~default
+     | Last -> Option.value_exn (Rsh.find_past_last_def rsh n sd))
+   | Sd_history (sd, _size) -> fun i -> Rsh.find_past rsh i sd
    | Full_rsh () -> rsh
 ;;
 
@@ -57,6 +65,7 @@ module Let_syntax = struct
     module Open_on_rhs = struct
       let return = return
       let sd x = Sd x
+      let sd_past x n def = Sd_past (x, n, def)
       let sd_history x n = Sd_history (x, n)
       let full_rsh () = Full_rsh ()
     end
