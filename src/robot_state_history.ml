@@ -124,10 +124,16 @@ let add_empty_state t =
             let tick = nth_to_tick t ~tick i in
             let state = Map.find_exn map tick in
             let sds_to_delete = Array.get t.sd_categories category in
-            let state =
-              List.fold sds_to_delete ~f:(fun state sd -> Rs.removep state sd) ~init:state
-            in
-            Map.set map ~key:tick ~data:state))
+            if not (List.is_empty sds_to_delete)
+            then (
+              let state =
+                List.fold
+                  sds_to_delete
+                  ~f:(fun state sd -> Rs.removep state sd)
+                  ~init:state
+              in
+              Map.set map ~key:tick ~data:state)
+            else map))
         ~init:past_states
     in
     { t with tick; curr_state; past_states = trimmed })
