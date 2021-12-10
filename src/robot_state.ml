@@ -38,7 +38,12 @@ let removep t (sd_p : Sd.Packed.t) =
   | P sd -> remove t sd
 ;;
 
-let keys t = List.map ~f:snd (Map.to_alist t.sd_map)
+let keys t =
+  Map.fold
+    t.sd_map
+    ~f:(fun ~key:_key ~data s -> Set.add s data)
+    ~init:(Set.empty (module Sd.Packed))
+;;
 
 let use_sd t1 t2 sd =
   match find t2 sd with
@@ -57,8 +62,8 @@ let use_sd_p t1 t2 (packed : Sd.Packed.t) =
 let use t1 ?(to_use = None) t2 =
   match to_use with
   | Some sds_to_use ->
-    List.fold_left sds_to_use ~init:t1 ~f:(fun t (Sd.Packed.P sd) -> use_sd t t2 sd)
-  | None -> List.fold_left (keys t2) ~init:t1 ~f:(fun t sd -> use_sd_p t t2 sd)
+    Set.fold sds_to_use ~init:t1 ~f:(fun t (Sd.Packed.P sd) -> use_sd t t2 sd)
+  | None -> Set.fold (keys t2) ~init:t1 ~f:(fun t sd -> use_sd_p t t2 sd)
 ;;
 
 let trim_to t sds = use empty ~to_use:(Some sds) t

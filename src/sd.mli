@@ -4,11 +4,19 @@ open! Core
 (* todo: is it okay that this is shown? probably *)
 type 'a t [@@deriving sexp_of, compare]
 
+module Id : sig
+  type t [@@deriving compare, sexp]
+  type comparator_witness
+
+  val comparator : (t, comparator_witness) Comparator.t
+end
+
 val create : string -> ('a -> Sexp.t) -> 'a t
 val equal : 'a t -> 'b t -> bool
 val hash : 'a t -> int
 val compare : 'a t -> 'a t -> int
 val sexp_of_t : 'a t -> Sexp.t
+val id : 'a t -> Id.t
 
 (* Univ_map.find : Univ_map.t -> *)
 
@@ -22,6 +30,12 @@ module Packed : sig
   val create : 'a sd_t -> t
   val hash : t -> int
   val compare : t -> t -> int
+
+  type comparator_witness
+
+  val comparator : (t, comparator_witness) Comparator.t
 end
 
 val pack : 'a t -> Packed.t
+
+type set = (Packed.t, Packed.comparator_witness) Set.t

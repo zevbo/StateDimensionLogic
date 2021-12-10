@@ -3,7 +3,7 @@ open! Core
 type t [@@deriving sexp_of]
 
 (** [empty] is a [t] with no data *)
-val empty :  t
+val empty : t
 
 (** [mem t sd] returns whether or not [t] has data stored for [sd]. O(log(n)) time complexity in size of [t]. *)
 val mem : t -> 'a Sd.t -> bool
@@ -27,10 +27,10 @@ val remove : t -> 'a Sd.t -> t
 val removep : t -> Sd.Packed.t -> t
 
 (** [use t1 ?to_use t2] calls [set t1 (get t2 sd)] for each [sd] where (a) there exists a binding in [t2] and (b) it is in [?to_use] or [?to_use] is [None]. O(m*log(n + m)) time complexity where n is the size of [t1] and m is the size of [t2]. *)
-val use : t -> ?to_use:Sd.Packed.t list option -> t -> t
+val use : t -> ?to_use:Sd.set option -> t -> t
 
 (** [trim_to t sd_set] removes all [sd]s from [t] that are in [sd_set] *)
-val trim_to : t -> Sd.Packed.t list -> t
+val trim_to : t -> Sd.set -> t
 
 (** [keys t] returns a list of all [sd] for which there exists a binding in [t]. O(n) time complexity in size of [t]. *)
-val keys : t -> Sd.Packed.t list
+val keys : t -> Sd.set
