@@ -1,6 +1,6 @@
 open! Core
 
-type t
+type t [@@deriving sexp_of]
 
 (** [create ~max_length] creates a new [t] which stores at most [~max_length] states. *)
 val create : max_length:int -> t
@@ -15,7 +15,7 @@ val curr_state : t -> Robot_state.t
 val add_state : t -> t
 
 (** [use t state] replaces the current state with [Robot_state.use (curr_state t) state] *)
-val use : t -> Robot_state.t -> t
+val use : t -> ?to_use:Sd.set option -> Robot_state.t -> t
 
 (** [find t sd] is equivilant to [Robot_state.find (curr_state t) sd] *)
 val find : t -> 'a Sd.t -> 'a option
@@ -26,6 +26,7 @@ val find_exn : t -> 'a Sd.t -> 'a
 val find_past : t -> int -> 'a Sd.t -> 'a option
 
 val find_past_def : t -> default:'a -> int -> 'a Sd.t -> 'a
+val find_past_last_def : t -> int -> 'a Sd.t -> 'a option
 
 (** [mem t sd] is equivilant to [Robot_state.mem (curr_state t) sd] *)
 val mem : t -> 'a Sd.t -> bool
