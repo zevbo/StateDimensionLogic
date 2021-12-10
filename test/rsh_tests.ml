@@ -104,20 +104,15 @@ let%expect_test "sd_lengths" =
     ((states
       (((data ((a 0) (x 10) (y 1) (z 0))) (sd_map <opaque>))
        ((data ((a 0) (x 10) (y 1))) (sd_map <opaque>))
-       ((data ((a 0) (x 10) (y 1))) (sd_map <opaque>))
+       ((data ((x 10) (y 1))) (sd_map <opaque>))
        ((data ((x 10) (y 1))) (sd_map <opaque>))
        ((data ((x 10) (y 1))) (sd_map <opaque>))))
      (max_length 5)) |}]
 ;;
 
-let%test_unit "real_store_len1" = [%test_eq: int] (Rsh.real_store_len 1) 1
-let%test_unit "real_store_len2" = [%test_eq: int] (Rsh.real_store_len 2) 3
-let%test_unit "real_store_len3" = [%test_eq: int] (Rsh.real_store_len 3) 3
-let%test_unit "real_store_len4" = [%test_eq: int] (Rsh.real_store_len 4) 7
-
 let%test "randomized:sd_lengths" =
   let max_len = 40 in
-  let real_max_len = max_len * 2 in
+  let real_max_len = max_len + 1 in
   let sd_lengths =
     Map.of_alist_exn
       (module Sd.Packed)
@@ -131,8 +126,7 @@ let%test "randomized:sd_lengths" =
       ~f:(fun rsh _ -> Rsh.add_state rsh state)
       ~init:rsh
   in
-  Map.for_alli sd_lengths ~f:(fun ~key ~data ->
-      let i = Rsh.real_store_len data - 1 in
-      Option.value_exn (Rsh.memp_past rsh i key)
-      && not (Option.value_exn (Rsh.memp_past rsh (i + 1) key)))
+  Map.for_alli sd_lengths ~f:(fun ~key ~data:len ->
+      Option.value_exn (Rsh.memp_past rsh (len - 1) key)
+      && not (Option.value_exn (Rsh.memp_past rsh len key)))
 ;;
