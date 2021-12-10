@@ -51,5 +51,3 @@ val max_length : t -> int
 
 (** [length t] returns the length of [t]. O(n) time complexity in the length of [t]. *)
 val length : t -> int
-
-val real_store_len : int -> int

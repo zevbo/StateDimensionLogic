@@ -6,19 +6,9 @@ type t =
   { past_states : (tick, Robot_state.t, Int.comparator_witness) Map.t
   ; curr_state : Robot_state.t
   ; tick : tick
-  ; sd_categories : Sd.Packed.t list array
+  ; lengths_to_sds : (int, Sd.Packed.t list, Int.comparator_witness) Map.t
   ; max_length : int
   }
-
-(* 1 -> 1, 2 -> 2, 3 -> 2, 7 -> 3 *)
-let num_categories len = Int.ceil_log2 (len + 1)
-
-(* cateogry 0 -> 0, category 1 -> 2, category 2 -> 6, category 3 -> 14  *)
-let max_category_i category = Int.pow 2 (category + 1) - 2
-
-(* 1 -> category 0, 2 -> category 1, 3 -> category 1, 4 -> category 2, 7 -> category 2, 8 -> category 3 *)
-let len_to_category i = Int.floor_log2 i
-let real_store_len len = max_category_i (len_to_category len) + 1
 
 (* note: for the moment, default_length only matters if it's the max_length *)
 let create ?(default_length = 1) ?(sd_lengths = Map.empty (module Sd.Packed)) () =
@@ -45,14 +35,17 @@ let create ?(default_length = 1) ?(sd_lengths = Map.empty (module Sd.Packed)) ()
          ~compare:Int.compare
          (default_length :: List.map ~f:snd (Map.to_alist sd_lengths)))
   in
-  let sd_categories = Array.create ~len:(num_categories max_length) [] in
-  Map.iteri sd_lengths ~f:(fun ~key ~data ->
-      let category = len_to_category data in
-      Array.set sd_categories category (key :: Array.get sd_categories category));
+  let lengths_to_sds =
+    Map.fold
+      sd_lengths
+      ~init:(Map.empty (module Int))
+      ~f:(fun ~key ~data map ->
+        Map.set map ~key:data ~data:(key :: Option.value (Map.find map data) ~default:[]))
+  in
   { past_states = Map.empty (module Int)
   ; tick = 0
   ; curr_state = Robot_state.empty
-  ; sd_categories
+  ; lengths_to_sds
   ; max_length
   }
 ;;
@@ -111,29 +104,21 @@ let add_empty_state t =
     let curr_state = Robot_state.empty in
     let past_states = Map.set t.past_states ~key:t.tick ~data:t.curr_state in
     (* length is 1 we do 0, length is 2 we do 1, length is 3 we do 1, length is 4 we do 2 *)
-    let l = length t in
-    let categories = List.range 0 (num_categories l) in
+    (* note: possible imporvement in runtime can be gotten by only deleting values every power of 2, goes from 2n map sets/deletions, to n + min (log max_length, n) *)
     let trimmed =
       List.fold_left
-        categories
-        ~f:(fun map category ->
-          let i = max_category_i category + 1 in
-          if i >= l
-          then map
-          else (
-            let tick = nth_to_tick t ~tick i in
-            let state = Map.find_exn map tick in
-            let sds_to_delete = Array.get t.sd_categories category in
-            if not (List.is_empty sds_to_delete)
-            then (
-              let state =
-                List.fold
-                  sds_to_delete
-                  ~f:(fun state sd -> Rs.removep state sd)
-                  ~init:state
-              in
-              Map.set map ~key:tick ~data:state)
-            else map))
+        (List.range 1 (length t))
+        ~f:(fun map i ->
+          let tick = nth_to_tick t ~tick i in
+          let state = Map.find_exn map tick in
+          let sds_to_delete_op = Map.find t.lengths_to_sds i in
+          match sds_to_delete_op with
+          | None -> map
+          | Some sds_to_delete ->
+            let state =
+              List.fold sds_to_delete ~f:(fun state sd -> Rs.removep state sd) ~init:state
+            in
+            Map.set map ~key:tick ~data:state)
         ~init:past_states
     in
     { t with tick; curr_state; past_states = trimmed })
