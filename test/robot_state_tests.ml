@@ -48,7 +48,7 @@ let%test_unit "typed_set_and_get" =
 ;;
 
 let%expect_test "keys" =
-  print_s (List.sexp_of_t Sd.Packed.sexp_of_t (Rs.keys state_w_xyz));
+  print_s (Set.sexp_of_m__t (module Sd.Packed) (Rs.keys state_w_xyz));
   [%expect {| (x y z) |}]
 ;;
 
@@ -62,7 +62,9 @@ let%expect_test "simple_remove" =
 ;;
 
 let%expect_test "trim_to" =
-  let state = Rs.trim_to state_w_xyz [ Sd.pack x; Sd.pack y ] in
+  let state =
+    Rs.trim_to state_w_xyz (Set.of_list (module Sd.Packed) [ Sd.pack x; Sd.pack y ])
+  in
   print_s (Rs.sexp_of_t state);
   [%expect {| ((data ((x 10) (y 0))) (sd_map <opaque>)) |}]
 ;;
@@ -101,6 +103,11 @@ let%expect_test "use2" =
   let state2 = Rs.set state2 z 10.0 in
   let state2 = Rs.set state2 b 10.0 in
   let state2 = Rs.set state2 c 10.0 in
-  print_s (Rs.sexp_of_t (Rs.use state1 ~to_use:(Some [ P x; P y; P z ]) state2));
+  print_s
+    (Rs.sexp_of_t
+       (Rs.use
+          state1
+          ~to_use:(Some (Set.of_list (module Sd.Packed) [ P x; P y; P z ]))
+          state2));
   [%expect {| ((data ((a 0) (b 0) (x 0) (y 10) (z 10))) (sd_map <opaque>)) |}]
 ;;
