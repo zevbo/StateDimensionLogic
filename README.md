@@ -35,7 +35,8 @@ Here, we introduce five major concepts:
 - **Seq_model.t** (short for Sequential Model): A Seq_model.t is a list of estimators that can be applied one after another, with guarantees that all Sd bindings that any given estimator requests will be there.
 - **Rprogram.t** (short for Robot Program): An Rprogram.t contains a Seq_model.t, as well as a unit Sd_lang.t. When run, the Rprogram.t will on loop run the model, and then run the unit Sd_lang.t.
 
-We strongly encourage you to take a look at the following simple use case, as a lot of this can seem very abstract without seeing some code. https://github.com/zevbo/RobotState/tree/main/simple_test
+We strongly encourage you to take a look at the following simple use case, as a lot of this can seem very abstract without seeing some code: https://github.com/zevbo/RobotState/tree/main/simple_test
+
 The above use case is showing how one could use this to model a robot with some linear velocity that increses by 0.1 + a random number between 0.5 and -0.5 every tick.
 
 
