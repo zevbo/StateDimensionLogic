@@ -128,6 +128,10 @@ let use t ?(to_use = None) (state : Robot_state.t) =
   { t with curr_state = Robot_state.use ~to_use t.curr_state state }
 ;;
 
+let use_extras t (state : Robot_state.t) =
+  { t with curr_state = Robot_state.use_extras t.curr_state state }
+;;
+
 let add_state t rs = use (add_empty_state t) rs
 
 type sexpable_rsh =

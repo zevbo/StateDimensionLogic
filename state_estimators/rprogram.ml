@@ -22,7 +22,7 @@ module M (Model : Model) = struct
 
   let tick t =
     let rsh = Model.apply t.rsh t.model in
-    Sd_lang.execute rsh t.execution;
+    Sd_lang.execute t.execution rsh;
     let rsh = Rsh.add_empty_state rsh in
     { t with rsh }
   ;;

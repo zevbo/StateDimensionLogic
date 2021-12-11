@@ -11,9 +11,6 @@ type t =
   ; safety : safety
   }
 
-exception Missing_sd of Sd.Packed.t
-exception Extra_sd of string
-
 let packed_to_str packed = String.t_of_sexp (Sd.Packed.sexp_of_t packed)
 
 let key_dependencies logic =
@@ -24,35 +21,14 @@ let key_dependencies logic =
 
 let apply (state_history : Robot_state_history.t) t =
   List.fold_left t.estimators ~init:state_history ~f:(fun state_history est ->
-      let estimated_state = Sd_lang.execute state_history est.logic in
-      let expected_keys = est.sds_estimating in
-      (match t.safety with
-      | Unsafe -> ()
-      | Safe | Warnings ->
-        let missing =
-          Set.find
-            ~f:(fun key -> not (Robot_state.memp estimated_state key))
-            expected_keys
-        in
-        let extra =
-          Set.find
-            ~f:(fun key -> not (Set.mem expected_keys key))
-            (Robot_state.keys estimated_state)
-        in
-        (match t.safety, missing, extra with
-        | Unsafe, _, _ -> (* should never reach here *) ()
-        | Safe, Some sd, _ -> raise (Missing_sd sd)
-        | Safe, None, Some sd -> raise (Extra_sd (Sd.Packed.to_string sd))
-        | Warnings, Some sd, _ ->
-          printf
-            "Est.Applicable warning: Detected missing sd %s during application"
-            (packed_to_str sd)
-        | Warnings, None, Some sd ->
-          printf
-            "Est.Applicable warning: Detected extra sd %s during application"
-            (packed_to_str sd)
-        | _, None, None -> ()));
-      Robot_state_history.use state_history ~to_use:(Some expected_keys) estimated_state)
+      let est_safety =
+        match t.safety with
+        | Unsafe -> Est.Unsafe
+        | Warnings -> Est.Warnings
+        | Safe -> Est.Safe
+      in
+      let estimated_state = Est.execute ~safety:est_safety est state_history in
+      Robot_state_history.use state_history estimated_state)
 ;;
 
 exception Premature_sd_req of Sd.Packed.t
