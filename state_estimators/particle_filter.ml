@@ -42,7 +42,7 @@ let create_logic
     in
     let weighted_particles =
       List.map extras_added_particles ~f:(fun particle ->
-          { particle; weight = Sd_lang.execute judge particle })
+          { particle; weight = Float.max (Sd_lang.execute judge particle) 0.0 })
     in
     let total_weight =
       List.sum (module Float) weighted_particles ~f:(fun weighted -> weighted.weight)
