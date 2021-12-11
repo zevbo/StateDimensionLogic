@@ -66,4 +66,9 @@ let use t1 ?(to_use = None) t2 =
   | None -> Set.fold (keys t2) ~init:t1 ~f:(fun t sd -> use_sd_p t t2 sd)
 ;;
 
+let use_extras t1 t2 =
+  Set.fold (keys t2) ~init:t1 ~f:(fun t sd ->
+      if not (memp t1 sd) then use_sd_p t t2 sd else t1)
+;;
+
 let trim_to t sds = use empty ~to_use:(Some sds) t

@@ -23,6 +23,8 @@ val add_state : t -> Robot_state.t -> t
 (** [use t state] replaces the current state with [Robot_state.use (curr_state t) state] *)
 val use : t -> ?to_use:Sd.set option -> Robot_state.t -> t
 
+val use_extras : t -> Robot_state.t -> t
+
 (** [find t sd] is equivilant to [Robot_state.find (curr_state t) sd] *)
 val find : t -> 'a Sd.t -> 'a option
 

@@ -7,7 +7,7 @@ type 'a default =
   | V of 'a
 
 val dependencies : 'a t -> (Sd.Packed.t, int, Sd.Packed.comparator_witness) Map.t
-val execute : Rsh.t -> 'a t -> 'a
+val execute : 'a t -> Rsh.t -> 'a
 
 module Let_syntax : sig
   module Let_syntax : sig
@@ -20,6 +20,8 @@ module Let_syntax : sig
       val sd : 'a Sd.t -> 'a t
       val sd_past : 'a Sd.t -> int -> 'a default -> 'a t
       val sd_history : 'a Sd.t -> int -> (int -> 'a option) t
+      val state : (Sd.Packed.t, Sd.Packed.comparator_witness) Set.t -> Rs.t t
+      val state_past : (Sd.Packed.t, Sd.Packed.comparator_witness) Set.t -> int -> Rs.t t
       val full_rsh : unit -> Rsh.t t
     end
   end
