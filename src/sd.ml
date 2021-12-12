@@ -17,16 +17,7 @@ let hash = Type_equal.Id.hash
 let sexp_of_t t = String.sexp_of_t (Type_equal.Id.name t)
 let to_type_equal_id t = t
 let id t = Type_equal.Id.uid (to_type_equal_id t)
-
-(* unsafe! if two values hash to the same thing, they will throw an error *)
-let compare t1 t2 =
-  if equal t1 t2
-  then 0
-  else (
-    match Int.compare (hash t1) (hash t2) with
-    | 0 -> failwith "Attempted to compare different ts with the same hash value"
-    | n -> n)
-;;
+let compare = Comparable.lift Type_equal.Id.Uid.compare ~f:Type_equal.Id.uid
 
 module Packed = struct
   module T = struct
