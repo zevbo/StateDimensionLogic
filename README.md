@@ -27,16 +27,32 @@ This tutorial will be split up into three stand-alone sections:
 
 ### Beginner
 
-Let's turn out attention to a simple example, in which RobotState is used to implement a simulation of a body move in a single dimension. After starting stationary, every tick, this body's linear velocity will increase by 0.1 plus a number chosen at random from the uniform distribution (0.5, -0.5). And then, the position of the body will increase by the velocity. We will also print both the velocity and position of the body each tick.
+The first concept we will introduce is an ```'a Sd.t```. 
 
-The example can be found at the following link, and we will look through the example from top down: https://github.com/zevbo/RobotState/tree/main/simple_test
+Let's turn out attention to a simple example, in which RobotState is used to implement a simulation of a body move in a single dimension. After starting stationary, every tick, this body's linear velocity will increase by 0.1 plus a number chosen at random from the uniform distribution (0.5, -0.5). And then, the position of the body will increase by the velocity. We will also print both the velocity and position of the body each tick. It also has a light, that will turn on once the robot passes position 50.
 
-Let's start by looking at simple_test.ml. At line 4, we can see we declare a variable "model" with the following line:
-![alt text](https://github.com/zevbo/RobotState/blob/main/images/simple-test-model.png)
+The example can be found at the following link, and we will look through the example bottom up: https://github.com/zevbo/RobotState/tree/main/simple_test
+
+Let's first turn our attention towards the simplest file: sds.ml. Assides from some Opens, it only contains three short let declerations:
 ```Ocaml
-let model = Seq_model.create [ Update_v.est; Update_x.est ]
+let (x : float Sd.t) = Sd.create "x" Float.sexp_of_t
+let (v : float Sd.t) = Sd.create "v" Float.sexp_of_t
+let (light_on : bool Sd.t) = Sd.create "light on" Bool.sexp_of_t
 ```
+Here, x and v both represent a unique key (called a state dimension or Sd.t) corresponidng to a value being stored corresponding to our robot simulation. The first value to Sd.create is the name of the state dimension for debugging purposes, and the second value is a sexp_of function. This sexp_of function t specifies what data is stored with that state dimension. The x position and velocity are both floats, so we use Float.sexp_of_t to initialize those state dimensions. Whether or not the light is on is a boolean, so we pass Bool.sexp_of_t to initalize its Sd.t.
 
+Now let's turn our attention twoards update_v.ml. Update_v.ml defines an Est.t instance that corresponds to the logic for updating the velocity of the robot. We can see the major portion of the file is the following:
+```Ocaml
+let logic =
+  [%map_open.Sd_lang
+    let v = sd_past Sds.v 1 (V 0.0) in
+    let diff = 0.1 +. Random.float_range (-0.5) 0.5 in
+    Rs.set Rs.empty Sds.v (v +. diff)]
+```
+To create the logic for an estimator, you write the logic inside the ```%map_open.Sd_lang``` syntax. The logic for an estimator can always be broken up into two parts:
+- The first let statment
+- Everything else
+In the first let statemnt, you declare all values about the robot
 ### Intermediate
 ### Advanced
 
