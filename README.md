@@ -103,7 +103,7 @@ through the example bottom up:
 https://github.com/zevbo/RobotState/tree/main/simple_test
 
 Let's first turn our attention towards the simplest file:
-sds.ml. Assides from some Opens, it only contains three short let
+sds.ml. Aside from some `open`s, it only contains three short let
 declerations:
 
 ```ocaml

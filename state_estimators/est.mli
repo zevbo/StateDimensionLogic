@@ -3,7 +3,7 @@ open Core_kernel
 
 type t =
   { logic : Robot_state.t Sd_lang.t
-  ; sds_estimating : (Sd.Packed.t, Sd.Packed.comparator_witness) Set.t
+  ; sds_estimating : Set.M(Sd.Packed).t
   }
 
 val create
