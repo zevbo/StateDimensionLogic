@@ -6,10 +6,7 @@ type t =
   ; sds_estimating : Set.M(Sd.Packed).t
   }
 
-val create
-  :  Robot_state.t Sd_lang.t
-  -> (Sd.Packed.t, Sd.Packed.comparator_witness) Set.t
-  -> t
+val create : Robot_state.t Sd_lang.t -> Set.M(Sd.Packed).t -> t
 
 type safety =
   | Safe
