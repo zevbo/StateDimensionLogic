@@ -33,7 +33,9 @@ The example can be found at the following link, and we will look through the exa
 
 Let's start by looking at simple_test.ml. At line 4, we can see we declare a variable "model" with the following line:
 ![alt text](https://github.com/zevbo/RobotState/blob/main/images/simple-test-model.png)
-
+```Ocaml
+let model = Seq_model.create [ Update_v.est; Update_x.est ]
+```
 
 ### Intermediate
 ### Advanced
