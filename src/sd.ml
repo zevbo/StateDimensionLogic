@@ -17,7 +17,11 @@ let hash = Type_equal.Id.hash
 let sexp_of_t t = String.sexp_of_t (Type_equal.Id.name t)
 let to_type_equal_id t = t
 let id t = Type_equal.Id.uid (to_type_equal_id t)
-let compare = Comparable.lift Type_equal.Id.Uid.compare ~f:Type_equal.Id.uid
+
+let compare x y =
+  let module Tid = Type_equal.Id in
+  Tid.Uid.compare (Tid.uid x) (Tid.uid y)
+;;
 
 module Packed = struct
   module T = struct
