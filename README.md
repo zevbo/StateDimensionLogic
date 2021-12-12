@@ -32,7 +32,7 @@ Let's turn out attention to a simple example, in which RobotState is used to imp
 The example can be found at the following link, and we will look through the example from top down: https://github.com/zevbo/RobotState/tree/main/simple_test
 
 Let's start by looking at simple_test.ml. At line 4, we can see we declare a variable "model" with the following line:
-![alt text](http://url/to/img.png)
+![alt text](https://github.com/zevbo/RobotState/blob/main/images/simple-test-model.png)
 
 
 ### Intermediate
