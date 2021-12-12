@@ -26,6 +26,13 @@ We're all trying to become better software engineers and programers all the time
 3. Creating faster programs
 4. Creating programs with enhanced utility
 
+Ultimately, this project is an attempt to provide tooling to dramatically help with 1 and 4. In the spirit of this project, I'd like to encourage some extra thought into your choice of tooling with the goal of optimizing these 4 ideals. In additon, there are a couple of tools in specific I would like to recommend for working with robot state:
+- I _strongly_ recommend using [dune](https://dune.readthedocs.io/en/stable/quick-start.html) for compilation and execution. Notably, the linked tutorial does not explain how to create a dune-project file, which you can do simply by copying the one in this repository, and putting it at the bade of your project. If the linked tutorial is further confusing, feel free to take a look at the source code for this project as an example. 
+- I recommend using [VSCode](https://code.visualstudio.com/download) for an IDE
+- The ocaml-platform VSCode extnetion provides very nice linting
+- I also recommend using the auto-formatter provided by ocaml-platform. To do so, you need a .ocamlformat file at the root of your proejct (I suggest copying the one from this repository), and run the below opam command. Alternatively, you can use the ocaml-format extention on VSCode, but I suggest trying to get the auto-formatter to work through ocaml-platform first.
+```opam install ocamlformat ocaml-lsp-server```
+
 ## Using RobotState: Tutorial
 
 This tutorial will be split up into three stand-alone sections:
