@@ -167,9 +167,9 @@ Here, we introduce five major concepts:
   guarantees that all Sd bindings that any given estimator requests
   will be there.
 - **Rprogram.t** (short for Robot Program): An Rprogram.t contains a
-Seq_model.t, as well as a unit Sd_lang.t. When run, the Rprogram.t
-will on loop run the model, and then run the unit Sd_lang.t.  There
-are 5 major concepts in RobotState
+  Seq_model.t, as well as a unit Sd_lang.t. When run, the Rprogram.t
+  will on loop run the model, and then run the unit Sd_lang.t.  There
+  are 5 major concepts in RobotState
 - **RobotStateHistory.t**: Stores a sequence of robot states, each one
   representing a different time stamp. For most robots, there will be
   one copy that your code treats as the true value, although this is
