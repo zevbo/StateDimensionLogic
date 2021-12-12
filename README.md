@@ -18,6 +18,14 @@ RobotState currently depends on dune, core and ppx_jane. If you have opam instal
 
 Currently, because it's still starting up, robot state is not available as a standard package. If you would like to use it in it's current form, simply clone the repository on to your local, and use folders src and state_estimators in any dune project as desired.
 
+## A Note On Tooling
+
+We're all trying to become better software engineers and programers all the time. When we say "better," we're mainly thinking about a few things:
+1. Writing more reliable code
+2. Completeling projects more quickly
+3. Creating faster programs
+4. Creating programs with enhanced utility
+
 ## Using RobotState: Tutorial
 
 This tutorial will be split up into three stand-alone sections:
