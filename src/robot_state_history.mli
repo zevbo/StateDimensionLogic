@@ -2,15 +2,17 @@ open! Core
 
 type t [@@deriving sexp_of]
 
-(** [create ~max_length] creates a new [t] which stores at most
-   [~max_length] states. *)
 val create
   :  ?default_length:int
+       (** Defaults to 1. Amount of history to keep for any state dimension
+           not mentioned in [sd_lengths] *)
   -> ?sd_lengths:(Sd.Packed.t, int, Sd.Packed.comparator_witness) Map.t
+       (** Specify amount of history to keep for particular state
+           dimensions. *)
   -> unit
   -> t
 
-(** [get_state t i] returns [Some] of the [i]th most recent state from
+(** [nth_state t i] returns [Some] of the [i]th most recent state from
    [t], or [None] if [t] doesn't have more than [i] states. O(log(n))
    time complexity in length of [t].  *)
 val nth_state : t -> int -> Robot_state.t option
