@@ -17,7 +17,7 @@ val create
    time complexity in length of [t].  *)
 val nth_state : t -> int -> Robot_state.t option
 
-(** [get_current_state t] is equivilant to [get_state 0]. O(1) time
+(** [get_current_state t] is equivalent to [get_state 0]. O(1) time
    complexity. *)
 val curr_state : t -> Robot_state.t
 
