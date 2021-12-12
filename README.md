@@ -56,7 +56,7 @@ state:
   to take a look at the source code for this project as an example.
 - I recommend using [VSCode](https://code.visualstudio.com/download)
   for an IDE
-- The ocaml-platform VSCode extnetion provides very nice linting
+- The ocaml-platform VSCode extension provides very nice linting
 - I also recommend using the auto-formatter provided by
   ocaml-platform. To do so, you need a .ocamlformat file at the root
   of your proejct (I suggest copying the one from this repository),
@@ -77,7 +77,7 @@ This tutorial will be split up into three stand-alone sections:
   package
 - _Intermediate_: this section is perfect for anyone looking to create
   a decently sized project using this package. It will give you the
-  tools to use all of the provided features effectivelly and in the
+  tools to use all of the provided features effectively and in the
   manner that they were meant
 - _Advanced_: this section will take a look at more of the underlying
   implementation, and will be useful for anyone who is spending more
@@ -87,10 +87,10 @@ This tutorial will be split up into three stand-alone sections:
 
 ### Beginner
 
-The first concept we will introduce is an ```'a Sd.t```.
+The first concept we will introduce is an `'a Sd.t`.
 
 Let's turn out attention to a simple example, in which RobotState is
-used to implement a simulation of a body move in a single
+used to implement a simulation of a body moving in a single
 dimension. After starting stationary, every tick, this body's linear
 velocity will increase by 0.1 plus a number chosen at random from the
 uniform distribution (0.5, -0.5). And then, the position of the body
