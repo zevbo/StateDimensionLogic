@@ -1,5 +1,6 @@
-(executable
+(library
  (name simple_test)
  (libraries core src state_estimators)
+ (inline_tests)
  (preprocess
   (pps ppx_jane)))

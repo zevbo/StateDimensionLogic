@@ -6,7 +6,7 @@ type 'a default =
   | Last
   | V of 'a
 
-val dependencies : 'a t -> (Sd.Packed.t, int, Sd.Packed.comparator_witness) Map.t
+val dependencies : 'a t -> int Map.M(Sd.Packed).t
 val execute : 'a t -> Rsh.t -> 'a
 
 module Let_syntax : sig

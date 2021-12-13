@@ -39,4 +39,4 @@ end
 
 val pack : 'a t -> Packed.t
 
-type set = (Packed.t, Packed.comparator_witness) Set.t
+type set = Set.M(Packed).t
