@@ -9,9 +9,8 @@ type safety =
 type t =
   { estimators : Est.t list
   ; safety : safety
+  ; rsh : Rsh.t
   }
-
-let packed_to_str packed = String.t_of_sexp (Sd.Packed.sexp_of_t packed)
 
 let key_dependencies logic =
   let dep = Sd_lang.dependencies logic in
@@ -19,8 +18,8 @@ let key_dependencies logic =
   Map.key_set curr_dep
 ;;
 
-let apply (state_history : Robot_state_history.t) t =
-  List.fold_left t.estimators ~init:state_history ~f:(fun state_history est ->
+let apply t =
+  List.fold_left t.estimators ~init:t.rsh ~f:(fun state_history est ->
       let est_safety =
         match t.safety with
         | Unsafe -> Est.Unsafe
@@ -43,8 +42,6 @@ type check_failure =
 type check_status =
   | Passed
   | Failure of check_failure * Sd.Packed.t
-
-let hash_set_mutable_union h1 h2 = Hash_set.iter h2 ~f:(fun key -> Hash_set.add h1 key)
 
 let current_check (t : t) =
   List.fold_until
@@ -85,8 +82,23 @@ let check t =
   | status -> status
 ;;
 
+let sd_lengths (estimators : Est.t list) =
+  let max_indecies =
+    List.fold
+      estimators
+      ~init:(Map.empty (module Sd.Packed))
+      ~f:(fun sd_lengths est ->
+        Map.merge_skewed
+          sd_lengths
+          (Sd_lang.dependencies est.logic)
+          ~combine:(fun ~key:_key -> Int.max))
+  in
+  Map.map max_indecies ~f:(fun n -> n + 1)
+;;
+
 let create ?(safety = Safe) estimators =
-  let model = { safety; estimators } in
+  let sd_lengths = sd_lengths estimators in
+  let model = { safety; estimators; rsh = Rsh.create ~sd_lengths () } in
   match safety with
   | Unsafe -> model
   | Safe ->
@@ -105,20 +117,18 @@ let create ?(safety = Safe) estimators =
         | Overwrite -> "possible overwrite"
         | Never_written -> "unestimated past require"
       in
-      printf "Est.Applicable warning: Detected %s of sd %s\n" warning (packed_to_str sd);
+      printf
+        "Est.Applicable warning: Detected %s of sd %s\n"
+        warning
+        (Sd.Packed.to_string sd);
       model)
 ;;
 
-let sd_lengths t =
-  let max_indecies =
-    List.fold
-      t.estimators
-      ~init:(Map.empty (module Sd.Packed))
-      ~f:(fun sd_lengths est ->
-        Map.merge_skewed
-          sd_lengths
-          (Sd_lang.dependencies est.logic)
-          ~combine:(fun ~key:_key -> Int.max))
-  in
-  Map.map max_indecies ~f:(fun n -> n + 1)
+let tick t = { t with rsh = Rsh.add_empty_state (apply t) }
+
+let rec run t ~ticks =
+  match ticks with
+  | None -> run (tick t) ~ticks
+  | Some 0 -> ()
+  | Some n -> run (tick t) ~ticks:(Some (n - 1))
 ;;

@@ -14,10 +14,8 @@ let print =
 let print_est = Est.create print (Set.empty (module Sd.Packed))
 let model = Seq_model.create [ Update_v.est; Update_x.est; Light_on.est; print_est ]
 
-module Rprogram = Rprogram.M (Seq_model)
-
 let%expect_test _ =
-  Rprogram.run (Rprogram.create model) ~ticks:(Some 100);
+  Seq_model.run model ~ticks:(Some 100);
   [%expect
     {|
     v: 0.036306, x: 0.036306, light on?: false
