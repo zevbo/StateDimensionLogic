@@ -167,7 +167,7 @@ type 'a default =
   | Last (* in case of too few states, use the oldest state *)
   | Unsafe (* in case of too few states, fail *)
  ```
-To get full safety, it is recommended to try and stick to using the ```ocaml Safe_last``` and ```ocaml V cases```. 
+To get full safety, it is recommended to try and stick to using the ```Safe_last``` and ```V``` cases. 
 
 In the first let statemnt, you declare all values about the robot
 
