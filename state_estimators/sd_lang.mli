@@ -8,7 +8,7 @@ type 'a default =
   | Last
   | Unsafe
 
-exception Sd_not_found of (Sd.Packed.t * int)
+exception Sd_not_found of (string * int)
 
 val dependencies : 'a t -> int Map.M(Sd.Packed).t
 val execute : 'a t -> Rsh.t -> 'a

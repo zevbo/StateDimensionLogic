@@ -13,7 +13,7 @@ type safety =
   | Warnings
   | Unsafe
 
-exception Missing_sd of Sd.Packed.t
+exception Missing_sd of string
 exception Extra_sd of string
 
 val execute : safety:safety -> t -> Rsh.t -> Rs.t

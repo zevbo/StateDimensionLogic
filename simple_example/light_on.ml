@@ -8,4 +8,5 @@ let logic =
     Rs.set Rs.empty Sds.light_on Float.(x > 50.0)]
 ;;
 
-let est = Est.create logic (Set.of_list (module Sd.Packed) [ Sd.pack Sds.light_on ])
+let sds_estimating = Set.of_list (module Sd.Packed) [ Sd.pack Sds.light_on ]
+let est = Est.create logic sds_estimating

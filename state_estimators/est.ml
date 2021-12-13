@@ -13,7 +13,7 @@ type safety =
   | Warnings
   | Unsafe
 
-exception Missing_sd of Sd.Packed.t
+exception Missing_sd of string
 exception Extra_sd of string
 
 let execute ~safety t rsh =
@@ -32,7 +32,7 @@ let execute ~safety t rsh =
     in
     (match safety, missing, extra with
     | Unsafe, _, _ -> (* should never reach here *) ()
-    | Safe, Some sd, _ -> raise (Missing_sd sd)
+    | Safe, Some sd, _ -> raise (Missing_sd (Sd.Packed.to_string sd))
     | Safe, None, Some sd -> raise (Extra_sd (Sd.Packed.to_string sd))
     | Warnings, Some sd, _ ->
       printf

@@ -142,3 +142,16 @@ let%test "non_existant_nth_states" =
   | None, None -> true
   | _ -> false
 ;;
+
+let%expect_test "rsh, sd_lengths:0" =
+  try
+    let _rsh =
+      Rsh.create ~sd_lengths:(Map.of_alist_exn (module Sd.Packed) [ Sd.pack x, 0 ]) ()
+    in
+    print_endline "no error"
+  with
+  | Invalid_argument s ->
+    print_endline s;
+    [%expect
+      {| entries in ~sd_lengths in Robot_state_history.create must be positive. Given 0 for key x |}]
+;;

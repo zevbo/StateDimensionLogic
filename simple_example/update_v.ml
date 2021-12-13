@@ -9,4 +9,5 @@ let logic =
     Rs.set Rs.empty Sds.v (v +. diff)]
 ;;
 
-let est = Est.create logic (Set.of_list (module Sd.Packed) [ Sd.pack Sds.v ])
+let sds_estiamting = Set.of_list (module Sd.Packed) [ Sd.pack Sds.v ]
+let est = Est.create logic sds_estiamting

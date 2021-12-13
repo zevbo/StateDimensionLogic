@@ -30,9 +30,9 @@ let apply t =
       Robot_state_history.use state_history estimated_state)
 ;;
 
-exception Premature_sd_req of Sd.Packed.t
-exception Overwriting_sd_estimate of Sd.Packed.t
-exception Never_written_req of Sd.Packed.t
+exception Premature_sd_req of string
+exception Overwriting_sd_estimate of string
+exception Never_written_req of string
 
 type check_failure =
   | Premature
@@ -51,9 +51,7 @@ let current_check (t : t) =
       let premature_sd = Set.find required ~f:(fun sd -> not (Set.mem guaranteed sd)) in
       let overwritten_sd = Set.find estimating ~f:(Set.mem guaranteed) in
       match premature_sd, overwritten_sd with
-      | Some premature_sd, _ ->
-        print_endline (String.t_of_sexp (Sd.Packed.sexp_of_t premature_sd));
-        Continue_or_stop.Stop (Failure (Premature, premature_sd))
+      | Some premature_sd, _ -> Continue_or_stop.Stop (Failure (Premature, premature_sd))
       | None, Some overwritten_sd ->
         Continue_or_stop.Stop (Failure (Overwrite, overwritten_sd))
       | None, None -> Continue_or_stop.Continue (Set.union guaranteed estimating))
@@ -104,9 +102,9 @@ let create ?(safety = Safe) estimators =
   | Safe ->
     (match check model with
     | Passed -> model
-    | Failure (Premature, sd) -> raise (Premature_sd_req sd)
-    | Failure (Overwrite, sd) -> raise (Overwriting_sd_estimate sd)
-    | Failure (Never_written, sd) -> raise (Never_written_req sd))
+    | Failure (Premature, sd) -> raise (Premature_sd_req (Sd.Packed.to_string sd))
+    | Failure (Overwrite, sd) -> raise (Overwriting_sd_estimate (Sd.Packed.to_string sd))
+    | Failure (Never_written, sd) -> raise (Never_written_req (Sd.Packed.to_string sd)))
   | Warnings ->
     (match check model with
     | Passed -> model
