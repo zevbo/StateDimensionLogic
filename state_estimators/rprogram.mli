@@ -12,7 +12,7 @@ end
 module M (Model : Model) : sig
   type t
 
-  val create : Model.t -> unit Sd_lang.t -> t
+  val create : Model.t -> t
   val tick : t -> t
   val run : t -> ticks:int option -> unit
 end

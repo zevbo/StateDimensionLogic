@@ -12,17 +12,13 @@ end
 module M (Model : Model) = struct
   type t =
     { model : Model.t
-    ; execution : unit Sd_lang.t (* zTODO: max_length should be inferred *)
     ; rsh : Rsh.t
     }
 
-  let create model execution =
-    { model; execution; rsh = Rsh.create ~sd_lengths:(Model.sd_lengths model) () }
-  ;;
+  let create model = { model; rsh = Rsh.create ~sd_lengths:(Model.sd_lengths model) () }
 
   let tick t =
     let rsh = Model.apply t.rsh t.model in
-    Sd_lang.execute t.execution rsh;
     let rsh = Rsh.add_empty_state rsh in
     { t with rsh }
   ;;
