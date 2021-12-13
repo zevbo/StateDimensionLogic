@@ -91,10 +91,10 @@ Let's turn out attention to a simple example, simulaitng a body moving in a sing
 
 The example can be found at the following link, and we will look
 through the example bottom up:
-https://github.com/zevbo/RobotState/tree/main/simple_test.
-To run it, simply cd into the simple_test directory, and run:
+https://github.com/zevbo/RobotState/tree/main/simple_example.
+To run it, simply cd into the run_simple_example directory, and run:
 
-```dune exec ./simple_test.exe```
+```dune exec ./run_simple_example.exe```
 
 #### State Dimensions
 
@@ -181,6 +181,61 @@ Finally, to create an estimator, you also need to create a set declaring what Sd
 let sds_estiamting = (Set.of_list (module Sd.Packed) [ Sd.pack Sds.v ])
 let est = Est.create logic sds_estiamting
 ```
+
+Now, I encourage you to take a look at light_on.ml as well as ```print_est``` declared in main.ml, and attempt to understand them on your own. If you run into trouble, come back and look at this tutorial!
+
+#### Sequential Model
+
+At this point, we've written all of the logic of the program. We simply need to run it. To do this, we are going to use a ```Seq_model.t``` at the end of main.ml:
+```ocaml
+let model = Seq_model.create [ Update_v.est; Update_x.est; Light_on.est; print_est ]
+let run () = Seq_model.run model ~ticks:(Some 100)
+```
+Here, ```Seq_model.run``` will take a number of ticks (None for no limit) and run each estimator, as defined by the list passed to ```Seq_model.create``` one after the other on each tick.
+
+#### Safety Checks
+
+One of the major features of this package is the safety checks it provides. When you create and then run a ```Seq_model.t```, it is guaranteed that every state dimension requested by each state estimator will be available. To see this check in action, let's try flipping the ```Update_x.est``` and ```Update_v.est```.
+``` ocaml
+++ let model = Seq_model.create [ Update_x.est; Update_v.est; Light_on.est; print_est ]
+-- let model = Seq_model.create [ Update_v.est; Update_x.est; Light_on.est; print_est ]
+```
+Notably, if we were to run this, because Update_x.est now comes before Update_v.est, it will not know the current velocity. Thus, it should fail. So, what happens when we run ```dune exec ./run_simple_example.exe```?
+
+```
+Uncaught exception:  
+  
+  State_estimators.Seq_model.Premature_sd_req("v")
+
+Raised at State_estimators__Seq_model.create in file "state_estimators/seq_model.ml", line 105, characters 33-82
+Called from Simple_example__Main.model in file "simple_example/main.ml", line 15, characters 12-84
+```
+
+Rather than failing after you run the program, the error is caught by the sequential model when the model is created! The ```Seq_model.t``` will also detect whether or not two estimators are attempting to estimate the same Sd.t, or if an estimator requires a state dimension that is never estiamted (rather than requiring one before it estimated).
+
+To see one other kind of safety, let's say we forgot to add the value for ```light_on``` in the light on estimator:
+```ocaml
+++ let _x = sd Sds.x in
+++ Rs.empty
+-- let x = sd Sds.x in
+-- Rs.set Rs.empty Sds.light_on Float.(x > 50.0)
+```
+When we run we get:
+```
+Uncaught exception:  
+  
+  State_estimators.Est.Missing_sd("light_on")
+
+Raised at State_estimators__Est.execute in file "state_estimators/est.ml", line 35, characters 26-69
+Called from State_estimators__Seq_model.apply.(fun) in file "state_estimators/seq_model.ml", line 29, characters 28-76
+Called from Stdlib__list.fold_left in file "list.ml", line 121, characters 24-34
+Called from State_estimators__Seq_model.tick in file "state_estimators/seq_model.ml", line 125, characters 48-57
+Called from State_estimators__Seq_model.run in file "state_estimators/seq_model.ml", line 131, characters 18-26
+Called from Dune__exe__Run_simple_example in file "run_simple_example/run_simple_example.ml", line 1, characters 9-35
+```
+This error is unfortunatley not catchable before we run the program. But, if an estimator ever forgets to return a binding for state dimension it said it was estiamting (or returns an extra state dimension), the program will still catch it.
+
+And that's it! You're now ready to use this package on whatever robot you choose!
 
 ### Intermediate
 ### Advanced
