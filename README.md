@@ -105,17 +105,16 @@ let (x : float Sd.t) = Sd.create "x" Float.sexp_of_t
 let (v : float Sd.t) = Sd.create "v" Float.sexp_of_t
 let (light_on : bool Sd.t) = Sd.create "light on" Bool.sexp_of_t
 ```
-Here, x and v both represent a unique key (called a state dimension or
+Here, x, v and light_on are each a unique key (called a state dimension or
 Sd.t) corresponidng to a value being stored corresponding to our robot
 simulation. The first value to Sd.create is the name of the state
-dimension for debugging purposes, and the second value is a sexp_of
-function. This sexp_of function t specifies what data is stored with
+dimension, and the second value is a sexp_of function. This sexp_of function specifies what data is stored with
 that state dimension. The x position and velocity are both floats, so
 we use Float.sexp_of_t to initialize those state dimensions. Whether
 or not the light is on is a boolean, so we pass Bool.sexp_of_t to
 initalize its Sd.t.
 
-Now let's turn our attention twoards update_v.ml and update_x.mls. Update_v.ml defines
+Now let's turn our attention towards update_v.ml and update_x.mls. Update_v.ml defines
 an Est.t instance that corresponds to the logic for updating the
 velocity of the robot. Update_x.ml does the same for updating the position.
 We can see the major portion of the two files are the
