@@ -162,8 +162,8 @@ sd_past : 'a Sd.t -> int -> Sd_lang.default -> 'a
 The sd function gives you the value of a state dimension that has been estimated in the current tick. sd_past gives you the value of a state dimension that was estimated some number of ticks ago (0 = this tick, 1 is previous tick). The default value says what value to use in the case where there are fewer than the request number of states recorded so far. The decleration for Sd_lang.default is the following:
 ``` ocaml
 type 'a default =
-  | Safe_last of 'a (* like last, except in case of just one state and length is not 0, use 'a)
-  | V of 'a (* in case of too few states, return associated value of type 'a)
+  | Safe_last of 'a (* like last, except in case of just one state and length is not 0, use 'a *)
+  | V of 'a (* in case of too few states, return associated value of type 'a *)
   | Last (* in case of too few states, use the oldest state *)
   | Unsafe (* in case of too few states, fail *)
  ```
