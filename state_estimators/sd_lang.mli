@@ -5,6 +5,9 @@ include Applicative.S
 type 'a default =
   | Last
   | V of 'a
+  | Unsafe
+
+exception Sd_not_found of (Sd.Packed.t * int)
 
 val dependencies : 'a t -> int Map.M(Sd.Packed).t
 val execute : 'a t -> Rsh.t -> 'a
