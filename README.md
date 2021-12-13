@@ -72,20 +72,20 @@ state:
 
 This tutorial will be split up into three stand-alone sections:
 
-- _Beginner_: this section will be more than enough to get a simple
+- _Simple_: this section will be more than enough to get a simple
   robot or simulation working, and keep many of the benefits of the
   package
-- _Intermediate_: this section is perfect for anyone looking to create
+- _Detailed_: this section is perfect for anyone looking to create
   a decently sized project using this package. It will give you the
   tools to use all of the provided features effectively and in the
   manner that they were meant
-- _Advanced_: this section will take a look at more of the underlying
+- _In-depth_: this section will take a look at more of the underlying
   implementation, and will be useful for anyone who is spending more
   substnatial time with this package. It will allow for faster
   debugging, more effective design, and even the ability to add more
   features.
 
-### Beginner
+### Simple
 
 Let's turn out attention to a simple example, simulaitng a body moving in a single dimension. It starts stationary, and every tick, its linear velocity increases by 0.1 + a random number between 0.5 and -0.5. It also has a light, that will turn on once the robot passes position 50.
 
@@ -237,8 +237,8 @@ This error is unfortunatley not catchable before we run the program. But, if an 
 
 And that's it! You're now ready to use this package on whatever robot you choose!
 
-### Intermediate
-### Advanced
+### Detailed
+### In-depth
 
 Here, we introduce five major concepts:
 
