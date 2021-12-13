@@ -61,7 +61,11 @@ let nth_to_tick t ?(tick = t.tick) n =
 ;;
 
 let nth_state t n =
-  if n = 0 then Some t.curr_state else Map.find t.past_states (nth_to_tick t n)
+  if n = 0
+  then Some t.curr_state
+  else if n < 0 || n >= t.max_length
+  then None
+  else Map.find t.past_states (nth_to_tick t n)
 ;;
 
 let max_length t = t.max_length
@@ -78,6 +82,7 @@ let find_past t n sd =
   | Some state -> Robot_state.find state sd
 ;;
 
+let find_past_exn t n sd = Option.value_exn (find_past t n sd)
 let find_past_def t ~default n sd = Option.value ~default (find_past t n sd)
 let find_past_last_def t n sd = find_past t (min n (length t - 1)) sd
 let mem t sd = Robot_state.mem (curr_state t) sd

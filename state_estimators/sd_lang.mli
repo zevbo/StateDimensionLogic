@@ -3,8 +3,9 @@ open! Src
 include Applicative.S
 
 type 'a default =
-  | Last
+  | Safe_last of 'a
   | V of 'a
+  | Last
   | Unsafe
 
 exception Sd_not_found of (Sd.Packed.t * int)

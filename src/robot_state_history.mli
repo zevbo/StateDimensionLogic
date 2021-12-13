@@ -42,6 +42,7 @@ val find_exn : t -> 'a Sd.t -> 'a
    n) sd] *)
 val find_past : t -> int -> 'a Sd.t -> 'a option
 
+val find_past_exn : t -> int -> 'a Sd.t -> 'a
 val find_past_def : t -> default:'a -> int -> 'a Sd.t -> 'a
 val find_past_last_def : t -> int -> 'a Sd.t -> 'a option
 

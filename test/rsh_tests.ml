@@ -130,3 +130,15 @@ let%test "randomized:sd_lengths" =
       Option.value_exn (Rsh.memp_past rsh (len - 1) key)
       && not (Option.value_exn (Rsh.memp_past rsh len key)))
 ;;
+
+let%test "non_existant_nth_states" =
+  let state = Rs.set Rs.empty x 0.0 in
+  let rsh = Rsh.create ~default_length:2 () in
+  let rsh = Rsh.add_state rsh state in
+  let rsh = Rsh.add_state rsh state in
+  let rsh = Rsh.add_state rsh state in
+  let rsh = Rsh.add_state rsh state in
+  match Rsh.nth_state rsh 2, Rsh.nth_state rsh (-1) with
+  | None, None -> true
+  | _ -> false
+;;
