@@ -96,6 +96,8 @@ To run it, simply cd into the simple_test directory, and run:
 
 ```dune exec ./simple_test.exe```
 
+#### State Dimensions
+
 Let's first turn our attention towards the simplest file:
 sds.ml. Aside from some `open`s, it only contains three short let
 declerations:
@@ -113,6 +115,8 @@ that state dimension. The x position and velocity are both floats, so
 we use Float.sexp_of_t to initialize those state dimensions. Whether
 or not the light is on is a boolean, so we pass Bool.sexp_of_t to
 initalize its Sd.t.
+
+#### Estimators
 
 Now let's turn our attention towards update_v.ml and update_x.mls. Update_v.ml defines
 an Est.t instance that corresponds to the logic for updating the
@@ -143,12 +147,12 @@ be broken up into three parts:
 
 - Decleration of required state dimensions
 - Logic
-- Return of new robot state
+- Create and return new robot state
 
 Let's start with "the decleration of required state dimensions." This section is marked by the first let statement, and in it you can use the following functions to rechieve data other estimators have declared about the robot:
 ```ocaml
-sd : 'a Sd.t -> 'a
-sd_past : 'a Sd.t -> int -> Sd_lang.default -> 'a
+val sd : 'a Sd.t -> 'a
+val sd_past : 'a Sd.t -> int -> Sd_lang.default -> 'a
 ```
 The sd function gives you the value of a state dimension that has been estimated in the current tick. sd_past gives you the value of a state dimension that was estimated some number of ticks ago (0 = this tick, 1 is previous tick). The default value says what value to use in the case where there are fewer than the request number of states recorded so far. The decleration for Sd_lang.default is the following:
 ``` ocaml
@@ -160,7 +164,23 @@ type 'a default =
  ```
 To get full safety, it is recommended to try and stick to using the ```Safe_last``` and ```V``` cases. 
 
-In the first let statemnt, you declare all values about the robot
+If you need multiple state dimensions, you can use the ```and``` keyword as seen in update_x.ml.
+
+The middle section, the logic, is the simplest: you simply write code just the way you normally would.
+
+In the final section, you need to create and then return a RobotState.t (also aliases as Rs.t). An Rs.t maps 'a Sd.t values to 'a values. The Rs.t you return from the estimator indicates the new values that those Sd.t values should have for this time step. The following functions and values give you all the functionality you need to create an Rs.t:
+```ocaml
+val empty : Rs.t (* an empty Rs.t *)
+val set : Rs.t -> 'a Sd.t -> 'a -> Rs.t (* returns a new Rs.t with all the bindings of the previous one, as well as the new binding *)
+```
+
+Often, you will want to write logic that does not estiamte anything about the state. In this case, you want to simply return ```Rs.empty```.
+
+Finally, to create an estimator, you also need to create a set declaring what Sd.t values your estimator returns. For example, in the case of update_v.ml we have:
+```ocaml
+let sds_estiamting = (Set.of_list (module Sd.Packed) [ Sd.pack Sds.v ])
+let est = Est.create logic sds_estiamting
+```
 
 ### Intermediate
 ### Advanced
