@@ -91,8 +91,9 @@ Let's turn out attention to a simple example, simulaitng a body moving in a sing
 
 The example can be found at the following link, and we will look
 through the example bottom up:
-https://github.com/zevbo/RobotState/tree/main/simple_test
+https://github.com/zevbo/RobotState/tree/main/simple_test.
 To run it, simply cd into the simple_test directory, and run:
+
 ```dune exec ./simple_test.exe```
 
 Let's first turn our attention towards the simplest file:
