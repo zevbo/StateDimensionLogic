@@ -1,0 +1,5 @@
+(executable
+ (name run_simple_example)
+ (libraries simple_example)
+ (preprocess
+  (pps ppx_jane)))
