@@ -87,16 +87,7 @@ This tutorial will be split up into three stand-alone sections:
 
 ### Beginner
 
-The first concept we will introduce is an `'a Sd.t`.
-
-Let's turn out attention to a simple example, in which RobotState is
-used to implement a simulation of a body moving in a single
-dimension. After starting stationary, every tick, this body's linear
-velocity will increase by 0.1 plus a number chosen at random from the
-uniform distribution (0.5, -0.5). And then, the position of the body
-will increase by the velocity. We will also print both the velocity
-and position of the body each tick. It also has a light, that will
-turn on once the robot passes position 50.
+Let's turn out attention to a simple example, simulaitng a body moving in a single dimension. It starts stationary, and every tick, its linear velocity increases by 0.1 + a random number between 0.5 and -0.5. It also has a light, that will turn on once the robot passes position 50.
 
 The example can be found at the following link, and we will look
 through the example bottom up:
