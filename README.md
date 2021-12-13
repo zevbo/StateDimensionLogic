@@ -2,7 +2,7 @@
 
 ## Quick Intro
 
-In short, RobotState is provides functionality for storing information
+In short, RobotState provides functionality for storing information
 about a robot in a single location (ie: a determinstic state machine),
 as well as a number of features for interacting with the state.
 
