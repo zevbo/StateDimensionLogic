@@ -63,7 +63,7 @@ let rec execute : 'a. 'a t -> Rsh.t -> 'a =
      (match default with
      (* probably wanna change this so it only defaults if we're past the length *)
      | V default ->
-       if n <= Rsh.length rsh
+       if n >= Rsh.length rsh
        then default
        else (
          try Rsh.find_past_exn rsh n sd with
