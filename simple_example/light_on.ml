@@ -1,5 +1,5 @@
 open Core
-open Src
+open State_basics
 open State_estimators
 
 let logic =
@@ -9,4 +9,4 @@ let logic =
 ;;
 
 let sds_estimating = Set.of_list (module Sd.Packed) [ Sd.pack Sds.light_on ]
-let est = Est.create logic sds_estimating
+let node = Sd_node.create logic sds_estimating

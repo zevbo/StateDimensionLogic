@@ -1,5 +1,5 @@
 opam-version: "2.0"
-name: "project"
+name: "robot_state"
 version: "0.1"
 synopsis: "Robot State!"
 description: """
@@ -7,9 +7,7 @@ Longer description: https://github.com/zevbo/RobotState
 """
 maintainer: "Zev Minsky-Primus <zevminskyprimus@gmail.com>"
 authors: "Zev Minsky-Primus <zevminskypimus@gmail.com>"
-license: ""
-homepage: ""
-bug-reports: ""
-dev-repo: ""
+homepage: "https://github.com/zevbo/RobotState"
+bug-reports: "https://github.com/zevbo/RobotState"
 depends: [ "ocaml" "ocamlfind" ]
-build: ["dune" "build" "-p" name "-j" jobs]
+build: ["dune" "build" "-p" name]

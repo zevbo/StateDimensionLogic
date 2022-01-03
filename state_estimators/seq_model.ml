@@ -1,5 +1,5 @@
 open! Core
-open! Src
+open! State_basics
 
 type safety =
   | Safe
@@ -7,7 +7,7 @@ type safety =
   | Unsafe
 
 type t =
-  { estimators : Est.t list
+  { nodes : Sd_node.t list
   ; safety : safety
   ; rsh : Rsh.t
   }
@@ -19,14 +19,14 @@ let key_dependencies logic =
 ;;
 
 let apply t =
-  List.fold_left t.estimators ~init:t.rsh ~f:(fun state_history est ->
+  List.fold_left t.nodes ~init:t.rsh ~f:(fun state_history node ->
       let est_safety =
         match t.safety with
-        | Unsafe -> Est.Unsafe
-        | Warnings -> Est.Warnings
-        | Safe -> Est.Safe
+        | Unsafe -> Sd_node.Unsafe
+        | Warnings -> Sd_node.Warnings
+        | Safe -> Sd_node.Safe
       in
-      let estimated_state = Est.execute ~safety:est_safety est state_history in
+      let estimated_state = Sd_node.execute ~safety:est_safety node state_history in
       Robot_state_history.use state_history estimated_state)
 ;;
 
@@ -46,8 +46,8 @@ type check_status =
 let current_check (t : t) =
   List.fold_until
     ~init:(Set.empty (module Sd.Packed))
-    ~f:(fun guaranteed t ->
-      let required, estimating = key_dependencies t.logic, t.sds_estimating in
+    ~f:(fun guaranteed node ->
+      let required, estimating = key_dependencies node.logic, node.sds_estimating in
       let premature_sd = Set.find required ~f:(fun sd -> not (Set.mem guaranteed sd)) in
       let overwritten_sd = Set.find estimating ~f:(Set.mem guaranteed) in
       match premature_sd, overwritten_sd with
@@ -56,18 +56,18 @@ let current_check (t : t) =
         Continue_or_stop.Stop (Failure (Overwrite, overwritten_sd))
       | None, None -> Continue_or_stop.Continue (Set.union guaranteed estimating))
     ~finish:(fun _ -> Passed)
-    t.estimators
+    t.nodes
 ;;
 
 let past_check t =
   let full_estimating =
     List.fold_left
-      t.estimators
+      t.nodes
       ~init:(Set.empty (module Sd.Packed)) (* zTODO: fix to better Set.union *)
-      ~f:(fun full_estimating t -> Set.union full_estimating t.sds_estimating)
+      ~f:(fun full_estimating node -> Set.union full_estimating node.sds_estimating)
   in
   let non_guranteed set = Set.find set ~f:(fun sd -> not (Set.mem full_estimating sd)) in
-  match List.find_map t.estimators ~f:(fun est -> non_guranteed est.sds_estimating) with
+  match List.find_map t.nodes ~f:(fun node -> non_guranteed node.sds_estimating) with
   | None -> Passed
   | Some sd -> Failure (Never_written, sd)
 ;;
@@ -80,23 +80,23 @@ let check t =
   | status -> status
 ;;
 
-let sd_lengths (estimators : Est.t list) =
+let sd_lengths (nodes : Sd_node.t list) =
   let max_indecies =
     List.fold
-      estimators
+      nodes
       ~init:(Map.empty (module Sd.Packed))
-      ~f:(fun sd_lengths est ->
+      ~f:(fun sd_lengths node ->
         Map.merge_skewed
           sd_lengths
-          (Sd_lang.dependencies est.logic)
+          (Sd_lang.dependencies node.logic)
           ~combine:(fun ~key:_key -> Int.max))
   in
   Map.map max_indecies ~f:(fun n -> n + 1)
 ;;
 
-let create ?(safety = Safe) estimators =
-  let sd_lengths = sd_lengths estimators in
-  let model = { safety; estimators; rsh = Rsh.create ~sd_lengths () } in
+let create ?(safety = Safe) nodes =
+  let sd_lengths = sd_lengths nodes in
+  let model = { safety; nodes; rsh = Rsh.create ~sd_lengths () } in
   match safety with
   | Unsafe -> model
   | Safe ->
@@ -116,7 +116,7 @@ let create ?(safety = Safe) estimators =
         | Never_written -> "unestimated past require"
       in
       printf
-        "Est.Applicable warning: Detected %s of sd %s\n"
+        "Sd_node.Applicable warning: Detected %s of sd %s\n"
         warning
         (Sd.Packed.to_string sd);
       model)

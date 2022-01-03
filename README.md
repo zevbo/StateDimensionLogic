@@ -27,7 +27,7 @@ opam install dune core ppx_jane
 Currently, because it's still starting up, robot state is not
 available as a standard package. If you would like to use it in it's
 current form, simply clone the repository on to your local, and use
-folders src and state_estimators in any dune project as desired.
+folders robot_state and state_estimators in any dune project as desired.
 
 ## A Note On Tooling
 
@@ -116,10 +116,10 @@ we use Float.sexp_of_t to initialize those state dimensions. Whether
 or not the light is on is a boolean, so we pass Bool.sexp_of_t to
 initalize its Sd.t.
 
-#### Estimators
+#### Sd_nodes
 
 Now let's turn our attention towards update_v.ml and update_x.mls. Update_v.ml defines
-an Est.t instance that corresponds to the logic for updating the
+an Sd_node.t instance that corresponds to the logic for updating the
 velocity of the robot. Update_x.ml does the same for updating the position.
 We can see the major portion of the two files are the
 following:
@@ -179,7 +179,7 @@ Often, you will want to write logic that does not estiamte anything about the st
 Finally, to create an estimator, you also need to create a set declaring what Sd.t values your estimator returns. For example, in the case of update_v.ml we have:
 ```ocaml
 let sds_estiamting = (Set.of_list (module Sd.Packed) [ Sd.pack Sds.v ])
-let est = Est.create logic sds_estiamting
+let node = Sd_node.create logic sds_estiamting
 ```
 
 Now, I encourage you to take a look at light_on.ml as well as ```print_est``` declared in main.ml, and attempt to understand them on your own. If you run into trouble, come back and look at this tutorial!

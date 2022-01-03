@@ -1,5 +1,5 @@
 open! Core
-open! Src
+open! State_basics
 
 module Commons = struct
   include Robot_state_tests.Commons

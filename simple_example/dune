@@ -1,5 +1,5 @@
 (library
  (name simple_example)
- (libraries core src state_estimators)
+ (libraries core state_basics state_estimators)
  (preprocess
   (pps ppx_jane)))
