@@ -8,6 +8,7 @@ let print =
     and x = sd Sds.x
     and light_on = sd Sds.light_on in
     printf "v: %f, x: %f, light on?: %b\n" v x light_on;
+    Out_channel.flush stdout;
     Rs.empty]
 ;;
 

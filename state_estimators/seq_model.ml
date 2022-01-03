@@ -124,9 +124,16 @@ let create ?(safety = Safe) estimators =
 
 let tick t = { t with rsh = Rsh.add_empty_state (apply t) }
 
-let rec run t ~ticks =
+let rec run ?(min_ms = 0.0) t ~ticks =
+  let desired_time = Unix.time () +. (min_ms /. 1000.0) in
+  let tick t =
+    let t = tick t in
+    let delay = Float.max (desired_time -. Unix.time ()) 0.0 in
+    Thread.delay delay;
+    t
+  in
   match ticks with
-  | None -> run (tick t) ~ticks
+  | None -> run (tick t) ~min_ms ~ticks
   | Some 0 -> ()
-  | Some n -> run (tick t) ~ticks:(Some (n - 1))
+  | Some n -> run (tick t) ~min_ms ~ticks:(Some (n - 1))
 ;;

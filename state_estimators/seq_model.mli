@@ -7,4 +7,4 @@ type safety =
 
 val create : ?safety:safety -> Est.t list -> t
 val tick : t -> t
-val run : t -> ticks:int option -> unit
+val run : ?min_ms:float -> t -> ticks:int option -> unit
