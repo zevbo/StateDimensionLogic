@@ -4,9 +4,6 @@ version: "0.1"
 synopsis: "Robot State!"
 description: """
 
-
-
-
 Longer description: https://github.com/zevbo/RobotState
 """
 maintainer: ["Zev Minsky-Primus <zevminskyprimus@gmail.com>"]

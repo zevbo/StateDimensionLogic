@@ -1,5 +1,6 @@
 (library
  (name sd_logic)
+ (public_name sd_logic)
  (libraries core)
  (preprocess
   (pps ppx_jane)))
