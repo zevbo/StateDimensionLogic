@@ -1,5 +1,4 @@
 open! Core
-open! State_basics
 include Applicative.S
 
 type 'a default =

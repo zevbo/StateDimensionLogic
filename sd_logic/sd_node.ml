@@ -1,5 +1,4 @@
 open! Core
-open State_basics
 
 type t =
   { logic : Robot_state.t Sd_lang.t

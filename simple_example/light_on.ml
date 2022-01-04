@@ -1,6 +1,5 @@
 open Core
-open State_basics
-open State_estimators
+open Sd_logic
 
 let logic =
   [%map_open.Sd_lang

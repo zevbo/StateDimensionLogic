@@ -1,5 +1,5 @@
 (library
- (name state_basics)
+ (name sd_logic)
  (libraries core)
  (preprocess
   (pps ppx_jane)))

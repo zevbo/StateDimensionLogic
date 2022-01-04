@@ -1,5 +1,5 @@
 (library
  (name simple_example)
- (libraries core state_basics state_estimators)
+ (libraries core sd_logic state_estimators)
  (preprocess
   (pps ppx_jane)))

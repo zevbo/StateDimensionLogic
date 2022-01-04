@@ -1,6 +1,5 @@
 open! Core
-open! State_basics
-open! State_estimators
+open! Sd_logic
 
 let print =
   [%map_open.Sd_lang
@@ -12,6 +11,6 @@ let print =
     Rs.empty]
 ;;
 
-let print_est = Sd_node.create print (Set.empty (module Sd.Packed))
-let model = Seq_model.create [ Update_v.node; Update_x.node; Light_on.node; print_est ]
+let print_node = Sd_node.create print (Set.empty (module Sd.Packed))
+let model = Seq_model.create [ Update_v.node; Update_x.node; Light_on.node; print_node ]
 let run () = Seq_model.run model ~ticks:(Some 100)
