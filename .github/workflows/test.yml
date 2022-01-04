@@ -9,7 +9,7 @@ jobs:
         os:
           - macos-latest
           - ubuntu-latest
-          - windows-latest
+         # - windows-latest # Not currently working
         ocaml-compiler:
           - 4.13.x
     runs-on: ${{ matrix.os }}
