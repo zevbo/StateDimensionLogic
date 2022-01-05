@@ -24,8 +24,7 @@ opam install dune core ppx_jane ounit2
 
 ```
 git clone https://github.com/zevbo/RobotState.git
-cd RobotState 
-opam install .
+opam install RobotState
 ```
 
 ## A Note On Tooling
