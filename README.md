@@ -116,7 +116,7 @@ we use Float.sexp_of_t to initialize those state dimensions. Whether
 or not the light is on is a boolean, so we pass Bool.sexp_of_t to
 initalize its Sd.t.
 
-#### Sd_nodes
+#### Sd_nodes (sometimes referred to just as "nodes")
 
 Now let's turn our attention towards update_v.ml and update_x.mls. Update_v.ml defines
 an Sd_node.t instance that corresponds to the logic for updating the
@@ -141,15 +141,15 @@ let logic =
 ;;
 ```
 
-To create the logic for an estimator, you write the logic inside the
-```%map_open.Sd_lang``` syntax. The logic for an estimator can always
+To create the logic for a node, you write the logic inside the
+```%map_open.Sd_lang``` syntax. The logic for a node can always
 be broken up into three parts:
 
 - Decleration of required state dimensions
 - Logic
 - Create and return new robot state
 
-Let's start with "the decleration of required state dimensions." This section is marked by the first let statement, and in it you can use the following functions to rechieve data other estimators have declared about the robot:
+Let's start with "the decleration of required state dimensions." This section is marked by the first let statement, and in it you can use the following functions to retrieve data other nodes have declared about the robot:
 ```ocaml
 val sd : 'a Sd.t -> 'a
 val sd_past : 'a Sd.t -> int -> Sd_lang.default -> 'a
@@ -157,18 +157,18 @@ val sd_past : 'a Sd.t -> int -> Sd_lang.default -> 'a
 The sd function gives you the value of a state dimension that has been estimated in the current tick. sd_past gives you the value of a state dimension that was estimated some number of ticks ago (0 = this tick, 1 is previous tick). The default value says what value to use in the case where there are fewer than the request number of states recorded so far. The decleration for Sd_lang.default is the following:
 ``` ocaml
 type 'a default =
-  | Safe_last of 'a (* like last, except in case of just one state and length is not 0, use 'a *)
   | V of 'a (* in case of too few states, return associated value of type 'a *)
   | Last (* in case of too few states, use the oldest state *)
+  | Safe_last of 'a (* like last, except in case of too few states and only current state exists, use 'a *)
   | Unsafe (* in case of too few states, fail *)
  ```
-To get full safety, it is recommended to try and stick to using the ```Safe_last``` and ```V``` cases. 
+To get full safety, it is recommended to try and stick to the ```Safe_last``` and ```V``` cases. 
 
 If you need multiple state dimensions, you can use the ```and``` keyword as seen in update_x.ml.
 
 The middle section, the logic, is the simplest: you simply write code just the way you normally would.
 
-In the final section, you need to create and then return a RobotState.t (also aliases as Rs.t). An Rs.t maps 'a Sd.t values to 'a values. The Rs.t you return from the estimator indicates the new values that those Sd.t values should have for this time step. The following functions and values give you all the functionality you need to create an Rs.t:
+In the final section, you need to create and then return a RobotState.t (also aliases as Rs.t). An Rs.t maps 'a Sd.t values to 'a values. The Rs.t you return from the Sd_node.t indicates the new values that those Sd.t values should have for this time step. The following functions and values give you all the functionality you need to create an Rs.t:
 ```ocaml
 val empty : Rs.t (* an empty Rs.t *)
 val set : Rs.t -> 'a Sd.t -> 'a -> Rs.t (* returns a new Rs.t with all the bindings of the previous one, as well as the new binding *)
@@ -176,7 +176,7 @@ val set : Rs.t -> 'a Sd.t -> 'a -> Rs.t (* returns a new Rs.t with all the bindi
 
 Often, you will want to write logic that does not estiamte anything about the state. In this case, you want to simply return ```Rs.empty```.
 
-Finally, to create an estimator, you also need to create a set declaring what Sd.t values your estimator returns. For example, in the case of update_v.ml we have:
+Finally, to create an Sd_node.t, you also need to create a set declaring what Sd.t values your Sd_node.t returns. For example, in the case of update_v.ml we have:
 ```ocaml
 let sds_estiamting = (Set.of_list (module Sd.Packed) [ Sd.pack Sds.v ])
 let node = Sd_node.create logic sds_estiamting
@@ -191,11 +191,11 @@ At this point, we've written all of the logic of the program. We simply need to 
 let model = Seq_model.create [ Update_v.est; Update_x.est; Light_on.est; print_est ]
 let run () = Seq_model.run model ~ticks:(Some 100)
 ```
-Here, ```Seq_model.run``` will take a number of ticks (None for no limit) and run each estimator, as defined by the list passed to ```Seq_model.create``` one after the other on each tick.
+Here, ```Seq_model.run``` will take a number of ticks (None for no limit) and run each sd_node, as defined by the list passed to ```Seq_model.create``` one after the other on each tick.
 
 #### Safety Checks
 
-One of the major features of this package is the safety checks it provides. When you create and then run a ```Seq_model.t```, it is guaranteed that every state dimension requested by each state estimator will be available. To see this check in action, let's try flipping the ```Update_x.est``` and ```Update_v.est```.
+One of the major features of this package is the safety checks it provides. When you create and then run a ```Seq_model.t```, it is guaranteed that every state dimension requested by each node will be available. To see this check in action, let's try flipping the ```Update_x.est``` and ```Update_v.est```.
 ``` ocaml
 ++ let model = Seq_model.create [ Update_x.est; Update_v.est; Light_on.est; print_est ]
 -- let model = Seq_model.create [ Update_v.est; Update_x.est; Light_on.est; print_est ]
@@ -211,29 +211,30 @@ Raised at State_estimators__Seq_model.create in file "state_estimators/seq_model
 Called from Simple_example__Main.model in file "simple_example/main.ml", line 15, characters 12-84
 ```
 
-Rather than failing after you run the program, the error is caught by the sequential model when the model is created! The ```Seq_model.t``` will also detect whether or not two estimators are attempting to estimate the same Sd.t, or if an estimator requires a state dimension that is never estiamted (rather than requiring one before it estimated).
+Rather than failing after you run the program, the error is caught by the sequential model when the model is created! The ```Seq_model.t``` will also detect whether or not two nodes are attempting to estimate the same Sd.t, or if a node requires a state dimension that is never estiamted (rather than requiring one before it is estimated).
 
-To see one other kind of safety, let's say we forgot to add the value for ```light_on``` in the light on estimator:
+To see one other kind of safety, let's say we forgot to add the value for ```light_on``` in the light on node:
 ```ocaml
 ++ let _x = sd Sds.x in
 ++ Rs.empty
 -- let x = sd Sds.x in
 -- Rs.set Rs.empty Sds.light_on Float.(x > 50.0)
 ```
-When we run we get:
+When we run the example using ```dune exec ./run_simple_example.exe``` we get:
 ```
-Uncaught exception:  
+Uncaught exception:
   
-  State_estimators.Est.Missing_sd("light_on")
+  Sd_logic.Sd_node.Missing_sd("light_on")
 
-Raised at State_estimators__Est.execute in file "state_estimators/est.ml", line 35, characters 26-69
-Called from State_estimators__Seq_model.apply.(fun) in file "state_estimators/seq_model.ml", line 29, characters 28-76
+Raised at Sd_logic__Sd_node.execute in file "sd_logic/sd_node.ml", line 34, characters 26-69
+Called from Sd_logic__Seq_model.apply.(fun) in file "sd_logic/seq_model.ml", line 28, characters 28-81
 Called from Stdlib__list.fold_left in file "list.ml", line 121, characters 24-34
-Called from State_estimators__Seq_model.tick in file "state_estimators/seq_model.ml", line 125, characters 48-57
-Called from State_estimators__Seq_model.run in file "state_estimators/seq_model.ml", line 131, characters 18-26
+Called from Sd_logic__Seq_model.tick in file "sd_logic/seq_model.ml", line 124, characters 48-57
+Called from Sd_logic__Seq_model.run.tick in file "sd_logic/seq_model.ml", line 129, characters 12-18
+Called from Sd_logic__Seq_model.run in file "sd_logic/seq_model.ml", line 137, characters 18-26
 Called from Dune__exe__Run_simple_example in file "run_simple_example/run_simple_example.ml", line 1, characters 9-35
 ```
-This error is unfortunatley not catchable before we run the program. But, if an estimator ever forgets to return a binding for state dimension it said it was estiamting (or returns an extra state dimension), the program will still catch it.
+This error is unfortunatley not catchable before we run the program. But, if a node ever forgets to return a binding for state dimension it said it was estiamting (or returns an extra state dimension), the program will still catch it.
 
 And that's it! You're now ready to use this package on whatever robot you choose!
 
