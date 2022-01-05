@@ -116,7 +116,7 @@ we use Float.sexp_of_t to initialize those state dimensions. Whether
 or not the light is on is a boolean, so we pass Bool.sexp_of_t to
 initalize its Sd.t.
 
-#### Sd_nodes (sometimes referred to just as "nodes")
+#### Sd_nodes (aka "nodes")
 
 Now let's turn our attention towards update_v.ml and update_x.mls. Update_v.ml defines
 an Sd_node.t instance that corresponds to the logic for updating the
