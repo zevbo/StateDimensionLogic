@@ -138,7 +138,6 @@ let logic =
     let x = sd_past Sds.x 1 (V 0.0)
     and v = sd Sds.v in
     Rs.set Rs.empty Sds.x (x +. v)]
-;;
 ```
 
 To create the logic for a node, you write the logic inside the
@@ -174,7 +173,7 @@ val empty : Rs.t (* an empty Rs.t *)
 val set : Rs.t -> 'a Sd.t -> 'a -> Rs.t (* returns a new Rs.t with all the bindings of the previous one, as well as the new binding *)
 ```
 
-Often, you will want to write logic that does not estiamte anything about the state. In this case, you want to simply return ```Rs.empty```.
+Often, you will want to write logic that does not estiamte anything about the state. In this case, you want to simply return ```Rs.empty```. For an example of this, we can look at 
 
 Finally, to create an Sd_node.t, you also need to create a set declaring what Sd.t values your Sd_node.t returns. For example, in the case of update_v.ml we have:
 ```ocaml
@@ -188,7 +187,7 @@ Now, I encourage you to take a look at light_on.ml as well as ```print_est``` de
 
 At this point, we've written all of the logic of the program. We simply need to run it. To do this, we are going to use a ```Seq_model.t``` at the end of main.ml:
 ```ocaml
-let model = Seq_model.create [ Update_v.est; Update_x.est; Light_on.est; print_est ]
+let model = Seq_model.create [ Update_v.node; Update_x.node; Light_on.node; Print.node ]
 let run () = Seq_model.run model ~ticks:(Some 100)
 ```
 Here, ```Seq_model.run``` will take a number of ticks (None for no limit) and run each sd_node, as defined by the list passed to ```Seq_model.create``` one after the other on each tick.
@@ -197,18 +196,18 @@ Here, ```Seq_model.run``` will take a number of ticks (None for no limit) and ru
 
 One of the major features of this package is the safety checks it provides. When you create and then run a ```Seq_model.t```, it is guaranteed that every state dimension requested by each node will be available. To see this check in action, let's try flipping the ```Update_x.est``` and ```Update_v.est```.
 ``` ocaml
-++ let model = Seq_model.create [ Update_x.est; Update_v.est; Light_on.est; print_est ]
--- let model = Seq_model.create [ Update_v.est; Update_x.est; Light_on.est; print_est ]
+++ let model = Seq_model.create [ Update_x.node; Update_v.node; Light_on.node; Print.node ]
+-- let model = Seq_model.create [ Update_v.node; Update_x.node; Light_on.node; Print.node ]
 ```
 Notably, if we were to run this, because Update_x.est now comes before Update_v.est, it will not know the current velocity. Thus, it should fail. So, what happens when we run ```dune exec ./run_simple_example.exe```?
 
 ```
-Uncaught exception:  
+Uncaught exception:
   
-  State_estimators.Seq_model.Premature_sd_req("v")
+  Sd_logic.Seq_model.Premature_sd_req("v")
 
-Raised at State_estimators__Seq_model.create in file "state_estimators/seq_model.ml", line 105, characters 33-82
-Called from Simple_example__Main.model in file "simple_example/main.ml", line 15, characters 12-84
+Raised at Sd_logic__Seq_model.create in file "sd_logic/seq_model.ml", line 104, characters 33-82
+Called from Simple_example__Main.model in file "simple_example/main.ml", line 5, characters 12-88
 ```
 
 Rather than failing after you run the program, the error is caught by the sequential model when the model is created! The ```Seq_model.t``` will also detect whether or not two nodes are attempting to estimate the same Sd.t, or if a node requires a state dimension that is never estiamted (rather than requiring one before it is estimated).
