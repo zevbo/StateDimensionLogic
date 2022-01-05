@@ -247,4 +247,8 @@ This project has a number of layers. Fully understanding how to use the project 
 - **Node, Sd_node.t**: An ```Sd_node.t``` is made up of a ```Rs.t Sd_lang.t``` and a variable representing the ```Sd.t``` values that are expected to be returned by the ```Sd_lang.t```.
 - **Model**: A model is not an officially defined concept. Rather, it is meant to denote any type based mainly on (directly or indirectly) ```Sd_lang.t```s that runs the logic of the entire program. Currently, the only model we offer is a sequential model (```Seq_model.t```), which each tick runs the same sequence of ```Sd_node.t```s one after the other.
 
+#### State Dimensions, Sd.t
+
+A state
+
 ### In-depth
