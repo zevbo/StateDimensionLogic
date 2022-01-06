@@ -32,4 +32,8 @@ build: [
     "@doc" {with-doc}
   ]
 ]
+url {
+  src: "https://github.com/zevbo/StateDimensionLogic/archive/refs/tags/v0.2.tar.gz"
+  checksum: "md5=249ce3d946a86046aba7540c5b9b0dbd"
+}
 dev-repo: "git+https://github.com/zevbo/RobotState"

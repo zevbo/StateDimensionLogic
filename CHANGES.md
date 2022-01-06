@@ -1,3 +1,3 @@
-## v0.2
+## v0.1
 
-- Initial public release of State Dimension Logic 2.0
+- Initial public release of State Dimension Logic
