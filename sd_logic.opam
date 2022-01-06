@@ -8,7 +8,7 @@ Longer description: https://github.com/zevbo/RobotState
 """
 maintainer: ["Zev Minsky-Primus <zevminskyprimus@gmail.com>"]
 authors: ["Zev Minsky-Primus <zevminskypimus@gmail.com>"]
-license: "ISC"
+license: "MIT"
 homepage: "https://github.com/zevbo/RobotState"
 doc: "https://github.com/zevbo/RobotState/"
 bug-reports: "https://github.com/zevbo/RobotState/issues"
