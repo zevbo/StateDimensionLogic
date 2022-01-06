@@ -14,9 +14,9 @@ doc: "https://github.com/zevbo/RobotState/"
 bug-reports: "https://github.com/zevbo/RobotState/issues"
 depends: [
   "dune" {>= "2.7"}
-  "core" {>= "v0.14.1"}                    [from sd_logic]
-  "ppx_jane" {>= "v0.14.0"}                [from sd_logic]
-  "ounit2" {with-test & >= "2.2.4"}        [from test]
+  "core" {>= "v0.14.1"} 
+  "ppx_jane" {>= "v0.14.0"}
+  "ounit2" {with-test & >= "2.2.4"}
   "odoc" {with-doc}
 ]
 build: [
