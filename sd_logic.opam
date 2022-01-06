@@ -4,20 +4,19 @@ version: "0.1"
 synopsis: "Robot State!"
 description: """
 
-
-
 Longer description: https://github.com/zevbo/RobotState
 """
 maintainer: ["Zev Minsky-Primus <zevminskyprimus@gmail.com>"]
 authors: ["Zev Minsky-Primus <zevminskypimus@gmail.com>"]
+license: "ISC"
 homepage: "https://github.com/zevbo/RobotState"
-doc: "https://github.com/zevbo/RobotState"
+doc: "https://github.com/zevbo/RobotState/"
 bug-reports: "https://github.com/zevbo/RobotState/issues"
 depends: [
   "dune" {>= "2.7"}
-  "core"
-  "ounit2"
-  "ppxlib"
+  "core" {>= "v0.14.1"}                    [from sd_logic]
+  "ppx_jane" {>= "v0.14.0"}                [from sd_logic]
+  "ounit2" {with-test & >= "2.2.4"}        [from test]
   "odoc" {with-doc}
 ]
 build: [
