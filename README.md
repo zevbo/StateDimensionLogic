@@ -2,8 +2,7 @@
 
 ## Quick Intro
 
-In short, State Dimension Logic provides functionality for storing information
-about a robot (or any other process with similar logic with time steps) in a single location (ie: a determinstic state machine).
+State Dimension Logic is a package that provides functionality for more safely and systematcally organizing and accessing data for a robot. Notably, while it's intended use is robotics, it can also be used for any project where similar logic is happening tick by tick.
 
 For a small example of it's, see
 https://github.com/zevbo/RobotState/tree/main/simple_test.
