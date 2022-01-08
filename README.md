@@ -241,8 +241,21 @@ This project has a number of layers. Fully understanding how to use the project 
 - **Node, Sd_node.t**: An ```Sd_node.t``` is made up of a ```Rs.t Sd_lang.t``` and a variable representing the ```Sd.t``` values that are expected to be returned by the ```Sd_lang.t```.
 - **Model**: A model is not an officially defined concept. Rather, it is meant to denote any type based mainly on (directly or indirectly) ```Sd_lang.t```s that runs the logic of the entire program. Currently, the only model we offer is a sequential model (```Seq_model.t```), which each tick runs the same sequence of ```Sd_node.t```s one after the other.
 
-#### State Dimensions, Sd.t
+#### State Dimensions, 'a Sd.t
 
-A state
+An ```'a Sd.t``` is a simply a unique key with an associated phantom type as well as a name for debugging. You can use them to refer to data you want to consistently store on the robot. The phantom type represents the type of data that is intended to be stored with the state dimension.
+
+To create one, you can use ```Sd.create : string -> ('a -> Sexp.t) -> 'a t```. The below example shows how we could create two state dimensions of differnt types:
+```ocaml
+let (yaw : float Sd.t) = Sd.create "yaw" Float.sexp_of_t
+let (light_on : bool Sd.t) = Sd.create "light on" Bool.sexp_of_t
+```
+
+Notice that the ```sexp_of_t``` function indicated to ```Sd.create``` what type the state dimension should be. Notably, if you'd like to create a state dimension without a natural ```sexp_of_t``` function, you could do the following:
+
+```ocaml
+type a = (* some type without a natural sexp_of_t function *)
+let (a_sd : a Sd.t) = Sd.create "a sd" (fun (a : a) -> String.sexp_of_t "some-a")
+```
 
 ### In-depth
