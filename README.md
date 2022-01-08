@@ -258,4 +258,56 @@ type a = (* some type without a natural sexp_of_t function *)
 let (a_sd : a Sd.t) = Sd.create "a sd" (fun (a : a) -> String.sexp_of_t "some-a")
 ```
 
+We also offer an ```Sd.Packed``` module for doing type-indepdent ```Sd.t``` operations. First of all, the following is the type defintion for ```Sd.Packed.t```:
+```ocaml
+type t = P : _ sd_t -> t
+```
+
+Also, the following function is provided in the ```Sd``` module:
+```ocaml
+val pack : 'a Sd.t -> Sd.Packed.t
+```
+
+Thus, if you wanted a list of state dimensions of different types, the following would be valid:
+```ocaml
+let (sd_list : Sd.Packed.t list) = [Sd.pack yaw; Sd.pack light_on]
+```
+
+Both ```Sd``` and ```Sd.Packed``` modules provide comparison functionality, along with a number of other things. 
+
+#### Robot State, RobotState.t or Rs.t
+
+The ```RobotState``` module provides functionality for creating a pure map from ```'a Sd.t```s to ```'a```s. The following is a subset of the module's mli:
+```ocaml
+type t [@@deriving sexp_of]
+
+(** [empty] is a [t] with no data *)
+val empty : t
+
+(** [find t sd] returns [Some] (the current binding) of [sd] in [t],
+   or [None] if no such binding exists. O(log(n)) time complexity in
+   size of [t]. *)
+val find : t -> 'a Sd.t -> 'a option
+
+(** [set t sd v] sets the given [sd] to [v]. O(log(n)) time complexity
+   in size of [t]. *)
+val set : t -> 'a Sd.t -> 'a -> t
+
+(** [remove t sd] removes the current binding for [sd] if such binding
+   exists. O(log(n)) time complexity in size of [t]. *)
+val remove : t -> 'a Sd.t -> t
+val removep : t -> Sd.Packed.t -> t
+
+(** [keys t] returns a list of all [sd] for which there exists a
+   binding in [t]. O(n) time complexity in size of [t]. *)
+val keys : t -> Sd.set
+```
+ 
+The above functions provide all the core functionality for robot state.
+
+To build up a ```RobotState.t```, you start with the empty state and then use ```set``` in order to add values. You can then use ```find``` to query, and ```remove``` to get rid of a value. Notably, ```removep``` has an option to be called with an ```Sd.Packed.t```, but ```find``` and ```set``` do not as their functionality is dependent on the type paramter of the ```'a Sd.t``` the recieve.
+
+You can 
+
+
 ### In-depth
