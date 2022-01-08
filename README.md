@@ -98,7 +98,7 @@ To run it, simply cd into the run_simple_example directory, and run:
 
 Let's first turn our attention towards the simplest file:
 sds.ml. Aside from some `open`s, it only contains three short let
-declerations:
+declarations:
 
 ```ocaml
 let (x : float Sd.t) = Sd.create "x" Float.sexp_of_t
@@ -142,16 +142,16 @@ To create the logic for a node, you write the logic inside the
 ```%map_open.Sd_lang``` syntax. The logic for a node can always
 be broken up into three parts:
 
-- Decleration of required state dimensions
+- Declaration of required state dimensions
 - Logic
 - Create and return new robot state
 
-Let's start with "the decleration of required state dimensions." This section is marked by the first let statement, and in it you can use the following functions to retrieve data other nodes have declared about the robot:
+Let's start with "the declaration of required state dimensions." This section is marked by the first let statement, and in it you can use the following functions to retrieve data other nodes have declared about the robot:
 ```ocaml
 val sd : 'a Sd.t -> 'a
 val sd_past : 'a Sd.t -> int -> Sd_lang.default -> 'a
 ```
-The sd function gives you the value of a state dimension that has been estimated in the current tick. sd_past gives you the value of a state dimension that was estimated some number of ticks ago (0 = this tick, 1 is previous tick). The default value says what value to use in the case where there are fewer than the request number of states recorded so far. The decleration for Sd_lang.default is the following:
+The sd function gives you the value of a state dimension that has been estimated in the current tick. sd_past gives you the value of a state dimension that was estimated some number of ticks ago (0 = this tick, 1 is previous tick). The default value says what value to use in the case where there are fewer than the request number of states recorded so far. The declaration for Sd_lang.default is the following:
 ``` ocaml
 type 'a default =
   | V of 'a (* in case of too few states, return associated value of type 'a *)
