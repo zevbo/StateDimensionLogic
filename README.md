@@ -115,7 +115,7 @@ Now let's turn our attention towards update_v.ml and update_x.mls. Update_v.ml d
 an Sd_node.t instance that corresponds to the logic for updating the
 velocity of the robot. Update_x.ml does the same for updating the position.
 We can see the major portion of the two files are the
-following:
+following (don't worry if it doesn't immediatly make sense):
 
 ```ocaml
 let logic =
