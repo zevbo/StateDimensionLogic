@@ -6,7 +6,7 @@ In short, State Dimension Logic provides functionality for storing information
 about a robot (or any other process with similar logic with time steps) in a single location (ie: a determinstic state machine).
 
 For a small example of it's, see
-https://github.com/zevbo/RobotState/tree/main/simple_test.
+https://github.com/zevbo/StateDimensionLogic/tree/main/simple_example.
 
 ## Installation
 
@@ -16,15 +16,10 @@ If you have opam installed (installation instructrions for opam:
 https://opam.ocaml.org/doc/Install.html) you can install all other
 necessary dependencies with:
 
-```
-opam install dune core ppx_jane ounit2
-```
-
-### RobotState Installation
+### Sd_logic Installation
 
 ```
-git clone https://github.com/zevbo/RobotState.git
-opam install RobotState
+opam install sd_logic
 ```
 
 ## A Note On Tooling
@@ -66,7 +61,7 @@ state:
   opam install ocamlformat ocaml-lsp-server
   ```
 
-## Using RobotState: Tutorial
+## Using State Dimension Logic: Tutorial
 
 This tutorial will be split up into three stand-alone sections:
 
