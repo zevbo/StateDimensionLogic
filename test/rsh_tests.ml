@@ -10,17 +10,17 @@ open Commons
 let%test_unit "bad_creation" =
   OUnit2.assert_raises
     (Invalid_argument
-       "~default_length in Robot_state_history.create must be positive. Given 0")
-    (fun () -> Rsh.create ~default_length:0 ())
+       "~min_default_length in Robot_state_history.create must be positive. Given 0")
+    (fun () -> Rsh.create ~min_default_length:0 ())
 ;;
 
 let%expect_test "empty" =
-  print_s (Rsh.sexp_of_t (Rsh.create ~default_length:10 ()));
+  print_s (Rsh.sexp_of_t (Rsh.create ~min_default_length:10 ()));
   [%expect {| ((states (((data ()) (sd_map <opaque>)))) (max_length 10)) |}]
 ;;
 
 let%expect_test "use" =
-  let rsh = Rsh.create ~default_length:2 () in
+  let rsh = Rsh.create ~min_default_length:2 () in
   let to_use = Rs.set Rs.empty x 1.0 in
   let to_use = Rs.set to_use y 1.0 in
   let to_use2 = Rs.set Rs.empty y 2.0 in
@@ -33,8 +33,8 @@ let%expect_test "use" =
 ;;
 
 let%expect_test "length" =
-  let rsh1 = Rsh.create ~default_length:2 () in
-  let rsh2 = Rsh.create ~default_length:5 () in
+  let rsh1 = Rsh.create ~min_default_length:2 () in
+  let rsh2 = Rsh.create ~min_default_length:5 () in
   let rsh1 = Rsh.add_empty_state rsh1 in
   let rsh1 = Rsh.add_empty_state rsh1 in
   let rsh1 = Rsh.add_empty_state rsh1 in
@@ -49,7 +49,7 @@ let%expect_test "length" =
 ;;
 
 let%test "max_len1" =
-  let rsh = Rsh.create ~default_length:1 () in
+  let rsh = Rsh.create ~min_default_length:1 () in
   let rsh = Rsh.add_empty_state rsh in
   Rsh.length rsh = 1
 ;;
@@ -63,7 +63,7 @@ let%test "randomized_tests: find_past, mem_past, memp_past" =
       List.fold_right
         states
         ~f:(fun state rsh -> Rsh.use (Rsh.add_empty_state rsh) state)
-        ~init:(Rsh.create ~default_length:num_states ())
+        ~init:(Rsh.create ~min_default_length:num_states ())
     in
     let check_state (state, i) =
       List.for_all std_sds ~f:(fun sd ->
@@ -119,7 +119,7 @@ let%test "randomized:sd_lengths" =
       (List.map std_sds ~f:(fun sd -> Sd.pack sd, 1 + Random.int max_len))
   in
   let state = List.fold std_sds ~f:(fun rs sd -> Rs.set rs sd 0.0) ~init:Rs.empty in
-  let rsh = Rsh.create ~default_length:real_max_len ~sd_lengths () in
+  let rsh = Rsh.create ~min_default_length:real_max_len ~sd_lengths () in
   let rsh =
     List.fold_left
       (List.range 0 real_max_len)
@@ -133,7 +133,7 @@ let%test "randomized:sd_lengths" =
 
 let%test "non_existant_nth_states" =
   let state = Rs.set Rs.empty x 0.0 in
-  let rsh = Rsh.create ~default_length:2 () in
+  let rsh = Rsh.create ~min_default_length:2 () in
   let rsh = Rsh.add_state rsh state in
   let rsh = Rsh.add_state rsh state in
   let rsh = Rsh.add_state rsh state in

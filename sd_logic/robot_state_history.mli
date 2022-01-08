@@ -3,12 +3,12 @@ open! Core
 type t [@@deriving sexp_of]
 
 val create
-  :  ?default_length:int
-       (** Defaults to 1. Amount of history to keep for any state dimension
-           not mentioned in [sd_lengths] *)
-  -> ?sd_lengths:(Sd.Packed.t, int, Sd.Packed.comparator_witness) Map.t
+  :  ?sd_lengths:(Sd.Packed.t, int, Sd.Packed.comparator_witness) Map.t
        (** Specify amount of history to keep for particular state
            dimensions. *)
+  -> ?min_default_length:int
+       (** Defaults to 1. Amount of history to keep for any state dimension
+           not mentioned in [sd_lengths] is the maximum of [min_default_lengths] and the largest length in [sd_lengths] *)
   -> unit
   -> t
 
@@ -38,8 +38,8 @@ val find : t -> 'a Sd.t -> 'a option
 
 val find_exn : t -> 'a Sd.t -> 'a
 
-(** [find_past t n sd] is equivalent to [Robot_state.find (nth_state t
-   n) sd] *)
+(** [find_past t n sd] is equivalent to [Robot_state.find (Option.value_exn (nth_state t
+   n)) sd] when there are at least [n + 1] states. *)
 val find_past : t -> int -> 'a Sd.t -> 'a option
 
 val find_past_exn : t -> int -> 'a Sd.t -> 'a
@@ -60,9 +60,9 @@ val memp : t -> Sd.Packed.t -> bool
    n) sd] *)
 val memp_past : t -> int -> Sd.Packed.t -> bool option
 
-(** [max_length t] returns the maximum length of [t]. O(1) time
+(** [default_length t] returns the maximum length of [t]. O(1) time
    complexity. *)
-val max_length : t -> int
+val default_length : t -> int
 
 (** [length t] returns the length of [t]. O(n) time complexity in the
    length of [t]. *)

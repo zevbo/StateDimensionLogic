@@ -300,14 +300,70 @@ val removep : t -> Sd.Packed.t -> t
 
 (** [keys t] returns a list of all [sd] for which there exists a
    binding in [t]. O(n) time complexity in size of [t]. *)
-val keys : t -> Sd.set
+val keys : t -> Set.M(Sd.Packed).t
 ```
  
 The above functions provide all the core functionality for robot state.
 
 To build up a ```RobotState.t```, you start with the empty state and then use ```set``` in order to add values. You can then use ```find``` to query, and ```remove``` to get rid of a value. Notably, ```removep``` has an option to be called with an ```Sd.Packed.t```, but ```find``` and ```set``` do not as their functionality is dependent on the type paramter of the ```'a Sd.t``` the recieve.
 
-You can 
+Using those functions, along with the ```keys``` query, you can build up all the functionality you should need. But for convinece sake, we provide a number of other functions:
+
+```ocaml
+(** [mem t sd] returns whether or not [t] has data stored for
+   [sd]. O(log(n)) time complexity in size of [t]. *)
+val mem : t -> 'a Sd.t -> bool
+val memp : t -> Sd.Packed.t -> bool
+
+(** [find_exn t sd] is an unsafe version of find *)
+val find_exn : t -> 'a Sd.t -> 'a
+
+(** [use t1 ?to_use t2] calls [set t1 (get t2 sd)] for each [sd] where
+   (a) there exists a binding in [t2] and (b) it is in [?to_use] or
+   [?to_use] is [None]. O(m*log(n + m)) time complexity where n is the
+   size of [t1] and m is the size of [t2]. *)
+val use : t -> ?to_use:Set.M(Sd.Packed).t option -> t -> t
+val use_extras : t -> t -> t
+
+(** [trim_to t sd_set] removes all [sd]s from [t] that are in [sd_set] *)
+val trim_to : t -> Set.M(Sd.Packed).t -> t
+```
+
+A quick note on representation, runtime and space complexity: the map is represented as a red-black tree. Therefore, most queries take log(n) time, and sets add log(n) space.
+
+### RobotStateHistory, RobotStateHistory.t or Rsh.t 
+
+A robot state history stores a set of states, each corresponding to a different "tick." The bare bones of the mli is the following:
+
+```ocaml
+
+type t [@@deriving sexp_of]
+
+val create
+  : ?sd_lengths:(Sd.Packed.t, int, Sd.Packed.comparator_witness) Map.t
+       (** Specify amount of history to keep for particular state
+           dimensions. *)
+  -> ?min_default_length:int
+       (** Defaults to 1. Amount of history to keep for any state dimension
+           not mentioned in [sd_lengths] is the maximum of [min_default_lengths] and the largest length in [sd_lengths] *)
+  -> unit
+  -> t
+
+(** [nth_state t i] returns [Some] of the [i]th most recent state from
+   [t], or [None] if [t] doesn't have more than [i] states. O(log(n))
+   time complexity in length of [t].  *)
+val nth_state : t -> int -> Robot_state.t option
+val add_state : t -> Robot_state.t -> t
+
+(** [length t] returns the length of [t]. O(n) time complexity in the
+   length of [t]. *)
+val length : t -> int
+(** [default_length t] returns the maximum length of [t]. O(1) time
+   complexity. *)
+val default_length : t -> int
+```
+
+The create function takes two optional arguments. The first of them allows you to specify a map 
 
 
 ### In-depth
