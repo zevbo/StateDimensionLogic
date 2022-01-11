@@ -199,12 +199,12 @@ Here, ```Seq_model.run``` will take a number of ticks (None for no limit) and ru
 
 #### Safety Checks
 
-One of the major features of this package is the safety checks it provides. When you create and then run a ```Seq_model.t```, it is guaranteed that every state dimension requested by each node will be available. To see this check in action, let's try flipping the ```Update_x.est``` and ```Update_v.est```.
+One of the major features of this package is the safety checks it provides. When you create and then run a ```Seq_model.t```, it is guaranteed that every state dimension requested by each node will be available. To see this check in action, let's try flipping the ```Update_x.node``` and ```Update_v.node```.
 ``` ocaml
 ++ let model = Seq_model.create [ Update_x.node; Update_v.node; Light_on.node; Print.node ]
 -- let model = Seq_model.create [ Update_v.node; Update_x.node; Light_on.node; Print.node ]
 ```
-Notably, if we were to run this, because Update_x.est now comes before Update_v.est, it will not know the current velocity. Thus, it should fail. So, what happens when we run ```dune exec ./run_simple_example.exe```?
+Notably, if we were to run this, because Update_x.node now comes before Update_v.node, it will not know the current velocity. Thus, it should fail. So, what happens when we run ```dune exec ./run_simple_example.exe```?
 
 ```
 Uncaught exception:
