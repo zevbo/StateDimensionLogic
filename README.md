@@ -166,12 +166,24 @@ val empty : Rs.t (* an empty Rs.t *)
 val set : Rs.t -> 'a Sd.t -> 'a -> Rs.t (* returns a new Rs.t with all the bindings of the previous one, as well as the new binding *)
 ```
 
-Often, you will want to write logic that does not estiamte anything about the state. In this case, you want to simply return ```Rs.empty```. For an example of this, we can look at 
+Often, you will want to write logic that does not estimate anything about the state. In this case, you want to simply return ```Rs.empty```. For an example of this, we can look at the logic of print.ml:
+
+```ocaml
+let logic =
+  [%map_open.Sd_lang
+    let v = sd Sds.v
+    and x = sd Sds.x
+    and light_on = sd Sds.light_on in
+    printf "v: %f, x: %f, light on?: %b\n" v x light_on;
+    Out_channel.flush stdout;
+    Rs.empty]
+;;
+```
 
 Finally, to create an Sd_node.t, you also need to create a set declaring what Sd.t values your Sd_node.t returns. For example, in the case of update_v.ml we have:
 ```ocaml
-let sds_estiamting = (Set.of_list (module Sd.Packed) [ Sd.pack Sds.v ])
-let node = Sd_node.create logic sds_estiamting
+let sds_estimating = (Set.of_list (module Sd.Packed) [ Sd.pack Sds.v ])
+let node = Sd_node.create logic sds_estimating
 ```
 
 Now, I encourage you to take a look at light_on.ml as well as ```print_est``` declared in main.ml, and attempt to understand them on your own. If you run into trouble, come back and look at this tutorial!
@@ -203,7 +215,7 @@ Raised at Sd_logic__Seq_model.create in file "sd_logic/seq_model.ml", line 104, 
 Called from Simple_example__Main.model in file "simple_example/main.ml", line 5, characters 12-88
 ```
 
-Rather than failing after you run the program, the error is caught by the sequential model when the model is created! The ```Seq_model.t``` will also detect whether or not two nodes are attempting to estimate the same Sd.t, or if a node requires a state dimension that is never estiamted (rather than requiring one before it is estimated).
+Rather than failing after you run the program, the error is caught by the sequential model when the model is created! The ```Seq_model.t``` will also detect whether or not two nodes are attempting to estimate the same Sd.t, or if a node requires a state dimension that is never estimated (rather than requiring one before it is estimated).
 
 To see one other kind of safety, let's say we forgot to add the value for ```light_on``` in the light on node:
 ```ocaml
@@ -226,7 +238,7 @@ Called from Sd_logic__Seq_model.run.tick in file "sd_logic/seq_model.ml", line 1
 Called from Sd_logic__Seq_model.run in file "sd_logic/seq_model.ml", line 137, characters 18-26
 Called from Dune__exe__Run_simple_example in file "run_simple_example/run_simple_example.ml", line 1, characters 9-35
 ```
-This error is unfortunatley not catchable before we run the program. But, if a node ever forgets to return a binding for state dimension it said it was estiamting (or returns an extra state dimension), the program will still catch it.
+This error is unfortunatley not catchable before we run the program. But, if a node ever forgets to return a binding for state dimension it said it was estimating (or returns an extra state dimension), the program will still catch it.
 
 And that's it! You're now ready to use this package on whatever robot you choose!
 

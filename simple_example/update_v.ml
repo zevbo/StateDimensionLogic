@@ -8,5 +8,5 @@ let logic =
     Rs.set Rs.empty Sds.v (v +. diff)]
 ;;
 
-let sds_estiamting = Set.of_list (module Sd.Packed) [ Sd.pack Sds.v ]
-let node = Sd_node.create logic sds_estiamting
+let sds_estimating = Set.of_list (module Sd.Packed) [ Sd.pack Sds.v ]
+let node = Sd_node.create logic sds_estimating
