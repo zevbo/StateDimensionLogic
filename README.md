@@ -412,6 +412,10 @@ val memp : t -> Sd.Packed.t -> bool
 val memp_past : t -> int -> Sd.Packed.t -> bool option
 ```
 
-The first thing I want to draw your attention to is the fact that there is no function to directly set the current (or any past) state. However, you can change the current state using ```use```. You may want to reread the description of ```RobotState.use``` in order to understand ```RobotStateHistory.use```. 
+The first thing I want to draw your attention to is the fact that there is no function to directly set the current (or any past) state. However, you can change the current state using ```use```. You may want to reread the description of ```RobotState.use``` in order to understand ```RobotStateHistory.use```. This means that are only two natural ways to build up the  next state of a ```Rsh.t```:
+- Create the entire ```Rs.t``` beforehand, and add it with ```Rsh.add_state```
+- Add an empty state to ```Rs.t```, and then utilize ```Rs.use``` to build up the current robot state
+
+The rest of the functions are just variations on ```find``` and ```mem```.
 
 ### In-depth
