@@ -431,4 +431,74 @@ The first thing I want to draw your attention to is the fact that there is no fu
 
 The rest of the functions are just variations on ```find``` and ```mem```.
 
+#### Sd language, Sd_lang.t
+
+A quick note about this section: a lot of the inner workings of ```Sd_lang``` will be left as a black box in this section. For a look inside, please look at the in-depth explanation.
+
+An ```'a Sd_lang.t``` is used to represent some function on an ```Rsh.t``` that returns a value of type ```'a```. For example, if you wanted to create an ```bool Sd_lang.t``` that simply returned the value of ```bool_sd : bool Sd.t```, it would look like this (don't worry if this is confusing at first; it will be explained more):
+
+```ocaml 
+let sd_bool = Sd.create "sd_bool" Bool.sexp_of_t
+let (simple_sd_lang : bool Sd_lang.t) = 
+  [%map_open.Sd_lang
+    let b = sd bool_sd in
+    b]
+;;
+```
+Then, the following snippet of code will create an appropriate ```Rsh.t```, and execute ```simple_sd_lang``` on it:
+```ocaml
+let rsh = Rsh.create ~min_default_length:2 ()
+let rs = Rs.set Rs.empty bool_sd false
+let rsh = Rsh.add_state rsh rs
+
+let result = Sd_lang.execute simple_sd_lang rsh 
+print_string (Bool.to_string result)
+```
+This will output ```false```.
+
+Let's now take a deeper look at the decleration of an ```Sd_lang.t```. The decleration can be broken up into two parts
+
+- Declaration of required state dimensions
+- Simple Body
+
+Let's start with "the declaration of required state dimensions." This section is marked by the first let statement, and in it you can use the following functions to retrieve data other nodes have declared about the robot:
+```ocaml
+val sd : 'a Sd.t -> 'a t
+val sd_past : 'a Sd.t -> int -> 'a default -> 'a t
+val sd_history : 'a Sd.t -> int -> (int -> 'a option) t
+val state : (Sd.Packed.t, Sd.Packed.comparator_witness) Set.t -> Rs.t t
+val state_past : (Sd.Packed.t, Sd.Packed.comparator_witness) Set.t -> int -> Rs.t t
+val full_rsh : unit -> Rsh.t t
+```
+In the given example, ```sd``` is the only of these functions that is used. It gives you the value of a state dimension that has been estimated in the current tick. However, there is substnatially more functionality one might want when creating sd_langs.
+
+```sd_past``` gives you the value of a state dimension that was estimated some number of ticks ago (0 = this tick, 1 is previous tick). The default value denotes what value to use in the case where there are fewer than the request number of states recorded so far.
+``` ocaml
+type 'a default =
+  | V of 'a (* in case of too few states, return associated value of type 'a *)
+  | Last (* in case of too few states, use the oldest state *)
+  | Safe_last of 'a (* like last, except in case of too few states and only current state exists, use 'a *)
+  | Unsafe (* in case of too few states, fail *)
+ ```
+To get full safety, it is recommended to try and stick to the ```Safe_last``` and ```V``` cases. 
+
+```sd_history``` gives back a function where going from indecies to values for the given state dimension. Just like in ```Rsh.find_past```, 0 corresponds to the most recent state, and each larger number corresponds to 1 state earlier.
+
+```state``` and ```state_past``` are useful for grabbing the bindings for a number of ```Sd.t```s as a ```Rs.t```. Notably, if the index for ```state_past``` is larger than the current number of states in the given ```Rsh.t```, then it will simply return an empty ```Rs.t```.
+
+Finally, ```full_rsh``` allows you to simply get the entire ```Rsh.t```. It's usually not recommended, because it is both not specific, and foregoes a lot of the advantages of the ```Sd_lang.t```s. However, we keep it as we understand there may be functionality that the current methods simply don't provide.
+
+In the given example, it only uses one of these functions. If you'd like to use more, simply use Ocaml's ```and``` operator like so:
+```ocaml 
+let (simple_sd_lang : bool Sd_lang.t) = 
+  [%map_open.Sd_lang
+    let b = sd bool_sd 
+    and c = sd_past bool_sd 1 (Safe_last true) in
+    print_string "in the previous tick, bool_sd was ";
+    print_endline (Bool.to_string c);
+    b]
+;;
+```
+
+
 ### In-depth
