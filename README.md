@@ -352,8 +352,8 @@ A robot state history stores a set of states, each corresponding to a different 
 
 type t [@@deriving sexp_of]
 
-val create
-  : ?sd_lengths:(Sd.Packed.t, int, Sd.Packed.comparator_witness) Map.t
+val create :
+  ?sd_lengths:(Sd.Packed.t, int, Sd.Packed.comparator_witness) Map.t
        (** Specify amount of history to keep for particular state
            dimensions. *)
   -> ?min_default_length:int
