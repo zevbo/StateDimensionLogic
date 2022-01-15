@@ -7,4 +7,6 @@ type safety =
 
 val create : ?safety:safety -> Sd_node.t list -> t
 val tick : t -> t
-val run : ?min_ms:float -> t -> ticks:int option -> unit
+
+(* max_ticks = -1 -> no max *)
+val run : ?min_ms:float -> ?max_ticks:int -> ?end_cond:bool Sd_lang.t -> t -> unit

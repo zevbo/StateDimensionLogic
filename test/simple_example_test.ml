@@ -103,5 +103,49 @@ let%expect_test _ =
   v: 11.637876, x: 352.411001, light on?: true
   v: 11.461952, x: 363.872953, light on?: true
   v: 11.095100, x: 374.968053, light on?: true
-  v: 10.992778, x: 385.960831, light on?: true |}]
+  v: 10.992778, x: 385.960831, light on?: true
+  v: 0.386632, x: 0.386632, light on?: false
+  v: 0.162394, x: 0.549026, light on?: false
+  v: -0.074027, x: 0.474999, light on?: false
+  v: 0.036775, x: 0.511774, light on?: false
+  v: 0.081229, x: 0.593002, light on?: false
+  v: 0.240963, x: 0.833965, light on?: false
+  v: 0.181638, x: 1.015603, light on?: false
+  v: 0.574031, x: 1.589634, light on?: false
+  v: 1.069220, x: 2.658854, light on?: false
+  v: 0.684250, x: 3.343104, light on?: false
+  v: 0.420478, x: 3.763582, light on?: false
+  v: 0.458415, x: 4.221996, light on?: false
+  v: 0.189109, x: 4.411105, light on?: false
+  v: 0.199467, x: 4.610573, light on?: false
+  v: 0.449167, x: 5.059740, light on?: false
+  v: 0.406975, x: 5.466715, light on?: false
+  v: 0.505204, x: 5.971919, light on?: false
+  v: 0.619264, x: 6.591183, light on?: false
+  v: 0.990349, x: 7.581532, light on?: false
+  v: 1.230043, x: 8.811574, light on?: false
+  v: 0.857180, x: 9.668754, light on?: false
+  v: 1.358767, x: 11.027522, light on?: false
+  v: 1.538881, x: 12.566403, light on?: false
+  v: 1.814520, x: 14.380923, light on?: false
+  v: 1.781115, x: 16.162038, light on?: false
+  v: 2.354859, x: 18.516896, light on?: false
+  v: 2.865876, x: 21.382772, light on?: false
+  v: 3.114618, x: 24.497390, light on?: false
+  v: 3.504537, x: 28.001928, light on?: false
+  v: 3.808701, x: 31.810629, light on?: false
+  v: 4.263240, x: 36.073869, light on?: false
+  v: 3.996417, x: 40.070285, light on?: false
+  v: 4.498199, x: 44.568485, light on?: false
+  v: 4.905024, x: 49.473509, light on?: false
+  v: 4.925086, x: 54.398594, light on?: true
+  v: 5.058214, x: 59.456808, light on?: true
+  v: 5.578158, x: 65.034966, light on?: true
+  v: 5.242724, x: 70.277690, light on?: true
+  v: 5.744678, x: 76.022369, light on?: true
+  v: 5.807780, x: 81.830148, light on?: true
+  v: 5.773962, x: 87.604110, light on?: true
+  v: 5.482719, x: 93.086828, light on?: true
+  v: 5.511844, x: 98.598673, light on?: true
+  v: 5.394021, x: 103.992694, light on?: true |}]
 ;;

@@ -123,16 +123,32 @@ let create ?(safety = Safe) nodes =
 
 let tick t = { t with rsh = Rsh.add_empty_state (apply t) }
 
-let rec run ?(min_ms = 0.0) t ~ticks =
+let rec run_checked
+    ?(min_ms = 0.0)
+    ?(max_ticks = 0)
+    ?(end_cond : bool Sd_lang.t Option.t)
+    t
+  =
   let desired_time = Unix.time () +. (min_ms /. 1000.0) in
-  let tick t =
-    let t = tick t in
+  let t = { t with rsh = apply t } in
+  let to_end =
+    match end_cond with
+    | None -> false
+    | Some end_cond -> Sd_lang.execute end_cond t.rsh
+  in
+  if to_end || max_ticks = 1
+  then ()
+  else (
+    let t = { t with rsh = Rsh.add_empty_state t.rsh } in
+    let max_ticks = max (-1) (max_ticks - 1) in
     let delay = Float.max (desired_time -. Unix.time ()) 0.0 in
     Thread.delay delay;
-    t
-  in
-  match ticks with
-  | None -> run (tick t) ~min_ms ~ticks
-  | Some 0 -> ()
-  | Some n -> run (tick t) ~min_ms ~ticks:(Some (n - 1))
+    run_checked t ~min_ms ~max_ticks ?end_cond)
+;;
+
+let run ?min_ms ?max_ticks ?end_cond t =
+  (match max_ticks with
+  | None -> ()
+  | Some max_ticks -> assert (max_ticks = -1 || max_ticks > 0));
+  run_checked ?min_ms ?max_ticks ?end_cond t
 ;;
