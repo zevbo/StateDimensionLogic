@@ -1,11 +1,12 @@
 open! Core
 include Applicative.S
 
-type 'a default =
-  | V of 'a (* in case of too few states, return associated value of type 'a *)
-  | Last (* in case of too few states, use the oldest state *)
-  | Safe_last of 'a (* like last, except in case of too few states and only current state exists, use 'a *)
-  | Unsafe
+type ('a, _) default =
+  | V : 'a -> ('a, 'a) default (* in case of too few states, return associated value of type 'a *)
+  | Last : ('a, 'a) default (* in case of too few states, use the oldest state *)
+  | Safe_last : 'a -> ('a, 'a) default (* like last, except in case of too few states and only current state exists, use 'a *)
+  | Unsafe : ('a, 'a) default
+  | Op : ('a, 'a Option.t) default
 (* in case of too few states, fail *)
 
 exception Sd_not_found of (string * int)
