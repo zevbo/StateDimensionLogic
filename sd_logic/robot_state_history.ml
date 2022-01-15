@@ -11,14 +11,14 @@ type t =
   }
 
 (* note: for the moment, default_length only matters if it's the max_length *)
-let create ?(default_length = 1) ?(sd_lengths = Map.empty (module Sd.Packed)) () =
-  if default_length <= 0
+let create ?(sd_lengths = Map.empty (module Sd.Packed)) ?(min_default_length = 1) () =
+  if min_default_length <= 0
   then
     raise
       (Invalid_argument
          (Printf.sprintf
-            "~default_length in Robot_state_history.create must be positive. Given %i"
-            default_length));
+            "~min_default_length in Robot_state_history.create must be positive. Given %i"
+            min_default_length));
   Map.iteri sd_lengths ~f:(fun ~key ~data ->
       if data <= 0
       then
@@ -33,7 +33,7 @@ let create ?(default_length = 1) ?(sd_lengths = Map.empty (module Sd.Packed)) ()
     Option.value_exn
       (List.max_elt
          ~compare:Int.compare
-         (default_length :: List.map ~f:snd (Map.to_alist sd_lengths)))
+         (min_default_length :: List.map ~f:snd (Map.to_alist sd_lengths)))
   in
   let lengths_to_sds =
     Map.fold
@@ -69,6 +69,7 @@ let nth_state t n =
 ;;
 
 let max_length t = t.max_length
+let default_length = max_length
 
 (* TODO: I can make length O(log(n)^2) time complexity *)
 let length t = 1 + Map.length t.past_states
@@ -76,6 +77,7 @@ let curr_state t = t.curr_state
 let find t sd = Robot_state.find (curr_state t) sd
 let find_exn t sd = Robot_state.find_exn (curr_state t) sd
 
+(* zTODO: should this return an 'a option option? *)
 let find_past t n sd =
   match nth_state t n with
   | None -> None

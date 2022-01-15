@@ -2,9 +2,9 @@ open! Core
 
 module T = struct
   type 'a default =
-    | Safe_last of 'a
     | V of 'a
     | Last
+    | Safe_last of 'a
     | Unsafe
 
   type _ t =
