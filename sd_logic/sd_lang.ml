@@ -1,17 +1,18 @@
 open! Core
 
 module T = struct
-  type 'a default =
-    | V of 'a
-    | Last
-    | Safe_last of 'a
-    | Unsafe
+  type ('a, _) default =
+    | V : 'a -> ('a, 'a) default (* in case of too few states, return associated value of type 'a *)
+    | Last : ('a, 'a) default (* in case of too few states, use the oldest state *)
+    | Safe_last : 'a -> ('a, 'a) default (* like last, except in case of too few states and only current state exists, use 'a *)
+    | Unsafe : ('a, 'a) default
+    | Op : ('a, 'a Option.t) default
 
   type _ t =
     | Return : 'a -> 'a t
     | Map2 : 'a t * 'b t * ('a -> 'b -> 'c) -> 'c t
     | Sd : 'a Sd.t -> 'a t
-    | Sd_past : 'a Sd.t * int * 'a default -> 'a t
+    | Sd_past : 'a Sd.t * int * ('a, 'b) default -> 'b t
     | Sd_history : 'a Sd.t * int -> (int -> 'a option) t
     | State : (Sd.Packed.t, Sd.Packed.comparator_witness) Set.t -> Rs.t t
     | State_past : (Sd.Packed.t, Sd.Packed.comparator_witness) Set.t * int -> Rs.t t
@@ -81,7 +82,8 @@ let rec execute : 'a. 'a t -> Rsh.t -> 'a =
        | _ -> raise (Sd_not_found (Sd.Packed.to_string (Sd.pack sd), -1)))
      | Unsafe ->
        (try Option.value_exn (Rsh.find_past rsh n sd) with
-       | _ -> raise (Sd_not_found (Sd.Packed.to_string (Sd.pack sd), n))))
+       | _ -> raise (Sd_not_found (Sd.Packed.to_string (Sd.pack sd), n)))
+     | Op -> Rsh.find_past rsh n sd)
    | Sd_history (sd, _size) -> fun i -> Rsh.find_past rsh i sd
    | State sd_set -> Rs.trim_to (Rsh.curr_state rsh) sd_set
    | State_past (sd_set, i) ->
