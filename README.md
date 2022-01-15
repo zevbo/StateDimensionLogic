@@ -433,7 +433,7 @@ The rest of the functions are just variations on ```find``` and ```mem```.
 
 #### Sd language, Sd_lang.t
 
-A quick note about this section: a lot of the inner workings of ```Sd_lang``` will be left as a black box in this section. For a look inside, please look at the in-depth explanation.
+A quick note about this section: a lot of the inner workings of ```Sd_lang``` will be left as a black box in this section. For a look inside, please look at the in-depth explanation. Either way, this will probably be the most difficult section of the tutorial, so if you don't feel comfortable with it immediatly after finishing, I suggest giving it a second read through and/or playing around with it a little
 
 An ```'a Sd_lang.t``` is used to represent some function on an ```Rsh.t``` that returns a value of type ```'a```. For example, if you wanted to create an ```bool Sd_lang.t``` that simply returned the value of ```bool_sd : bool Sd.t```, it would look like this (don't worry if this is confusing at first; it will be explained more):
 
@@ -499,6 +499,37 @@ let (simple_sd_lang : bool Sd_lang.t) =
     b]
 ;;
 ```
+
+There's one final, and critical, feature in this module: 
+```ocaml
+val dependencies : t -> int Map.M(Sd.Packed).t
+```
+```dependencies``` takes an ```Sd.Packed.t```, and tells you how many ticks that state dimension needs to be kept for. A little look ahead: this will be useful for passing in a good value for ```~sd_lengths``` when creating an ```Rsh.t```.
+
+#### Sd node, Sd_node.t
+
+An ```Sd_node.t``` is defined as follows:
+```ocaml
+type t =
+  { logic : Robot_state.t Sd_lang.t
+  ; sds_estimating : Set.M(Sd.Packed).t
+  }
+```
+The output of ```logic``` of the node represents new bindings to store about the robot, and ```sds_estimating``` is the set of state dimensions that should have bindings. To execute an ```Sd_node.t```, you can use the following function:
+
+```ocaml
+type safety =
+  | Safe
+  | Warnings
+  | Unsafe
+
+val execute : safety:safety -> t -> Rsh.t -> Rs.t
+```
+
+If you choose ```Safe``` as the safety for the execution, two checks are performed: one to make sure that no extra ```Sd.t```s were in the returned ```Rs.t```, and one to make sure that every requested ```Sd.t``` has a binding in the returned ```Rs.t```.
+
+#### Sequential Model, Seq_model.t
+
 
 
 ### In-depth
