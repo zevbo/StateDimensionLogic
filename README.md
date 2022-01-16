@@ -2,21 +2,18 @@
 
 ## Quick Intro
 
-In short, State Dimension Logic provides functionality for storing information
-about a robot (or any other process with similar logic with time steps) in a single location (ie: a determinstic state machine).
+State Dimension Logic provides a framework for storing information
+about a robot (or any other process with similar logic with time
+steps) in a single location (i.e.: a determinstic state machine).
 
 For a small example of it's, see
-https://github.com/zevbo/StateDimensionLogic/tree/main/simple_example.
+[https://github.com/zevbo/StateDimensionLogic/tree/main/simple_example].
 
 ## Installation
 
-### Dependencies
-
 If you have opam installed (installation instructrions for opam:
-https://opam.ocaml.org/doc/Install.html) you can install all other
-necessary dependencies with:
-
-### Sd_logic Installation
+https://opam.ocaml.org/doc/Install.html) you can install `sd_logic`
+along with all necessary dependencies with:
 
 ```
 opam install sd_logic
@@ -154,7 +151,7 @@ type 'a default =
   | Safe_last of 'a (* like last, except in case of too few states and only current state exists, use 'a *)
   | Unsafe (* in case of too few states, fail *)
  ```
-To get full safety, it is recommended to try and stick to the ```Safe_last``` and ```V``` cases. 
+To get full safety, it is recommended to try and stick to the ```Safe_last``` and ```V``` cases.
 
 If you need multiple state dimensions, you can use the ```and``` keyword as seen in update_x.ml.
 
@@ -208,7 +205,7 @@ Notably, if we were to run this, because Update_x.node now comes before Update_v
 
 ```
 Uncaught exception:
-  
+
   Sd_logic.Seq_model.Premature_sd_req("v")
 
 Raised at Sd_logic__Seq_model.create in file "sd_logic/seq_model.ml", line 104, characters 33-82
@@ -228,7 +225,7 @@ To see one other kind of safety, let's say we forgot to add the value for ```lig
 When we run the example using ```dune exec ./run_simple_example.exe``` we get:
 ```
 Uncaught exception:
-  
+
   Sd_logic.Sd_node.Missing_sd("light_on")
 
 Raised at Sd_logic__Sd_node.execute in file "sd_logic/sd_node.ml", line 34, characters 26-69
@@ -286,7 +283,7 @@ Thus, if you wanted a list of state dimensions of different types, the following
 let (sd_list : Sd.Packed.t list) = [Sd.pack yaw; Sd.pack light_on]
 ```
 
-Both ```Sd``` and ```Sd.Packed``` modules provide comparison functionality, along with a number of other things. 
+Both ```Sd``` and ```Sd.Packed``` modules provide comparison functionality, along with a number of other things.
 
 #### Robot State, RobotState.t or Rs.t
 
@@ -315,7 +312,7 @@ val removep : t -> Sd.Packed.t -> t
    binding in [t]. O(n) time complexity in size of [t]. *)
 val keys : t -> Set.M(Sd.Packed).t
 ```
- 
+
 The above functions provide all the core functionality for robot state.
 
 To build up a ```RobotState.t```, you start with the empty state and then use ```set``` in order to add values. You can then use ```find``` to query, and ```remove``` to get rid of a value. Notably, ```removep``` has an option to be called with an ```Sd.Packed.t```, but ```find``` and ```set``` do not as their functionality is dependent on the type paramter of the ```'a Sd.t``` the recieve.
@@ -344,7 +341,7 @@ val trim_to : t -> Set.M(Sd.Packed).t -> t
 
 A quick note on representation, runtime and space complexity: the map is created using ```Core.Univ_map```, so it is represented as a red-black tree. Therefore, most queries take log(n) time, and sets add log(n) space if you keep both copies.
 
-### RobotStateHistory, RobotStateHistory.t or Rsh.t 
+### RobotStateHistory, RobotStateHistory.t or Rsh.t
 
 A robot state history stores a set of states, each corresponding to a different "tick." The bare bones of the mli is the following:
 
@@ -437,9 +434,9 @@ A quick note about this section: a lot of the inner workings of ```Sd_lang``` wi
 
 An ```'a Sd_lang.t``` is used to represent some function on an ```Rsh.t``` that returns a value of type ```'a```. For example, if you wanted to create an ```bool Sd_lang.t``` that simply returned the value of ```bool_sd : bool Sd.t```, it would look like this (don't worry if this is confusing at first; it will be explained more):
 
-```ocaml 
+```ocaml
 let sd_bool = Sd.create "sd_bool" Bool.sexp_of_t
-let (simple_sd_lang : bool Sd_lang.t) = 
+let (simple_sd_lang : bool Sd_lang.t) =
   [%map_open.Sd_lang
     let b = sd bool_sd in
     b]
@@ -451,7 +448,7 @@ let rsh = Rsh.create ~min_default_length:2 ()
 let rs = Rs.set Rs.empty bool_sd false
 let rsh = Rsh.add_state rsh rs
 
-let result = Sd_lang.execute simple_sd_lang rsh 
+let result = Sd_lang.execute simple_sd_lang rsh
 print_string (Bool.to_string result)
 ```
 This will output ```false```.
@@ -480,7 +477,7 @@ type 'a default =
   | Safe_last of 'a (* like last, except in case of too few states and only current state exists, use 'a *)
   | Unsafe (* in case of too few states, fail *)
  ```
-To get full safety, it is recommended to try and stick to the ```Safe_last``` and ```V``` cases. 
+To get full safety, it is recommended to try and stick to the ```Safe_last``` and ```V``` cases.
 
 ```sd_history``` gives back a function where going from indecies to values for the given state dimension. Just like in ```Rsh.find_past```, 0 corresponds to the most recent state, and each larger number corresponds to 1 state earlier.
 
@@ -489,10 +486,10 @@ To get full safety, it is recommended to try and stick to the ```Safe_last``` an
 Finally, ```full_rsh``` allows you to simply get the entire ```Rsh.t```. It's usually not recommended, because it is both not specific, and foregoes a lot of the advantages of the ```Sd_lang.t```s. However, we keep it as we understand there may be functionality that the current methods simply don't provide.
 
 In the given example, it only uses one of these functions. If you'd like to use more, simply use Ocaml's ```and``` operator like so:
-```ocaml 
-let (simple_sd_lang : bool Sd_lang.t) = 
+```ocaml
+let (simple_sd_lang : bool Sd_lang.t) =
   [%map_open.Sd_lang
-    let b = sd bool_sd 
+    let b = sd bool_sd
     and c = sd_past bool_sd 1 (Safe_last true) in
     print_string "in the previous tick, bool_sd was ";
     print_endline (Bool.to_string c);
@@ -500,7 +497,7 @@ let (simple_sd_lang : bool Sd_lang.t) =
 ;;
 ```
 
-There's one final, and critical, feature in this module: 
+There's one final, and critical, feature in this module:
 ```ocaml
 val dependencies : t -> int Map.M(Sd.Packed).t
 ```
@@ -569,7 +566,7 @@ And these requiremnts are performed whenever the model is run:
 
 #### Wrap up
 
-Ultimately, when using sd_logic, you should mainly be writing ```Sd_lang.t```s. But, sometimes you will wish to write more complicated pieces of logic that require a deeper understanding of what's going on. Heck, you can even implement your own kind of model that isn't sequential. So have fun with it! 
+Ultimately, when using sd_logic, you should mainly be writing ```Sd_lang.t```s. But, sometimes you will wish to write more complicated pieces of logic that require a deeper understanding of what's going on. Heck, you can even implement your own kind of model that isn't sequential. So have fun with it!
 
 ### In-depth
 
