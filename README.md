@@ -593,15 +593,15 @@ type 'a default =
   | Safe_last of 'a (* like last, except in case of too few states and only current state exists, use 'a *)
   | Unsafe (* in case of too few states, fail *)
  ```
-To get full safety, it is recommended to try and stick to the ```Safe_last``` and ```V``` cases.
+To get full safety, it is recommended to try and stick to the `Safe_last` and `V` cases.
 
-```sd_history``` gives back a function where going from indecies to values for the given state dimension. Just like in ```Rsh.find_past```, 0 corresponds to the most recent state, and each larger number corresponds to 1 state earlier.
+`sd_history` gives back a function where going from indecies to values for the given state dimension. Just like in `Rsh.find_past`, 0 corresponds to the most recent state, and each larger number corresponds to 1 state earlier.
 
-```state``` and ```state_past``` are useful for grabbing the bindings for a number of ```Sd.t```s as a ```Rs.t```. Notably, if the index for ```state_past``` is larger than the current number of states in the given ```Rsh.t```, then it will simply return an empty ```Rs.t```.
+`state` and `state_past` are useful for grabbing the bindings for a number of `Sd.t`s as a `Rs.t`. Notably, if the index for `state_past` is larger than the current number of states in the given `Rsh.t`, then it will simply return an empty `Rs.t`.
 
-Finally, ```full_rsh``` allows you to simply get the entire ```Rsh.t```. It's usually not recommended, because it is both not specific, and foregoes a lot of the advantages of the ```Sd_lang.t```s. However, we keep it as we understand there may be functionality that the current methods simply don't provide.
+Finally, `full_rsh` allows you to simply get the entire `Rsh.t`. It's usually not recommended, because it is both not specific, and foregoes a lot of the advantages of the `Sd_lang.t`s. However, we keep it as we understand there may be functionality that the current methods simply don't provide.
 
-In the given example, it only uses one of these functions. If you'd like to use more, simply use Ocaml's ```and``` operator like so:
+In the given example, it only uses one of these functions. If you'd like to use more, simply use Ocaml's `and` operator like so:
 ```ocaml
 let (simple_sd_lang : bool Sd_lang.t) =
   [%map_open.Sd_lang
@@ -617,7 +617,7 @@ There's one final, and critical, feature in this module:
 ```ocaml
 val dependencies : t -> int Map.M(Sd.Packed).t
 ```
-```dependencies``` takes an ```Sd.Packed.t```, and tells you how many ticks that state dimension needs to be kept for. A little look ahead: this will be useful for passing in a good value for ```~sd_lengths``` when creating an ```Rsh.t```. It might not be immediatly clear what this means, so let's go over an example.
+`dependencies` takes an `Sd.Packed.t`, and tells you how many ticks that state dimension needs to be kept for. A little look ahead: this will be useful for passing in a good value for `~sd_lengths` when creating an `Rsh.t`. It might not be immediatly clear what this means, so let's go over an example.
 
 ```ocaml
 let logic =
@@ -630,18 +630,18 @@ let logic =
 
 let deps = Sd_lang.dependencies logic
 ```
-In ```deps```, there are two bindigns: ```Sds.v``` is bound to 0, and ```Sds.x``` is bound to 2. This is because it needs the current velocity, and the value for ```Sds.x``` from state with index 2. Notably, each value in ```deps``` is the oldest version we may need.
+In `deps`, there are two bindigns: `Sds.v` is bound to 0, and `Sds.x` is bound to 2. This is because it needs the current velocity, and the value for `Sds.x` from state with index 2. Notably, each value in `deps` is the oldest version we may need.
 
 #### Sd node, Sd_node.t
 
-An ```Sd_node.t``` is defined as follows:
+An `Sd_node.t` is defined as follows:
 ```ocaml
 type t =
   { logic : Robot_state.t Sd_lang.t
   ; sds_estimating : Set.M(Sd.Packed).t
   }
 ```
-The output of ```logic``` of the node represents new bindings to store about the robot, and ```sds_estimating``` is the set of state dimensions that should have bindings. To execute an ```Sd_node.t```, you can use the following function:
+The output of `logic` of the node represents new bindings to store about the robot, and `sds_estimating` is the set of state dimensions that should have bindings. To execute an `Sd_node.t`, you can use the following function:
 
 ```ocaml
 type safety =
@@ -652,11 +652,11 @@ type safety =
 val execute : safety:safety -> t -> Rsh.t -> Rs.t
 ```
 
-If you choose ```Safe``` as the safety for the execution, two checks are performed: one to make sure that no extra ```Sd.t```s were in the returned ```Rs.t```, and one to make sure that every requested ```Sd.t``` has a binding in the returned ```Rs.t```.
+If you choose `Safe` as the safety for the execution, two checks are performed: one to make sure that no extra `Sd.t`s were in the returned `Rs.t`, and one to make sure that every requested `Sd.t` has a binding in the returned `Rs.t`.
 
 #### Sequential Model, Seq_model.t
 
-The idea behind a sequential model is to first take a list of ```Sd_node.t```s that should be executed one after another. Importantly, it should provide the ability to run a number of safety checks on the code. What the checks are in specific will be discussed later. For now, here's the mli for using it:
+The idea behind a sequential model is to first take a list of `Sd_node.t`s that should be executed one after another. Importantly, it should provide the ability to run a number of safety checks on the code. What the checks are in specific will be discussed later. For now, here's the mli for using it:
 
 ```ocaml
 type t
@@ -671,18 +671,18 @@ val tick : t -> t
 val run : ?min_ms:float -> t -> ticks:int option -> unit
 ```
 
-To create a model, you simply give it a list of ```Sd_node.t```s, and a safety if you wish (it defaults to ```Safe```). The model is create with an empty ```Rsh.t```. Then, you can run one tick using the ```tick``` function, outputing a ```t``` with a  new ```Rsh.t```. Alternativelly, you can run the model for a number of ticks (or without stop), using ```run```. To see this in action, check out ```https://github.com/zevbo/StateDimensionLogic/tree/main/simple_example``` and/or the simple explanation above.
+To create a model, you simply give it a list of `Sd_node.t`s, and a safety if you wish (it defaults to `Safe`). The model is create with an empty `Rsh.t`. Then, you can run one tick using the `tick` function, outputing a `t` with a  new `Rsh.t`. Alternativelly, you can run the model for a number of ticks (or without stop), using `run`. To see this in action, check out `https://github.com/zevbo/StateDimensionLogic/tree/main/simple_example` and/or the simple explanation above.
 
 Finally, let's go over the safety checks that it provides. The following checks are performed on creation of the model:
-- All requirements of an ```Sd.t``` from the current tick have bindings returned by a previous ```Sd_node.t```
-- No two ```Sd_node.t```s return bindgins for the same ```Sd.t```
+- All requirements of an `Sd.t` from the current tick have bindings returned by a previous `Sd_node.t`
+- No two `Sd_node.t`s return bindgins for the same `Sd.t`
 
 And these requiremnts are performed whenever the model is run:
-- Each ```Sd_node.t``` returns an ```Rs.t``` with the state dimensions it promised, and only the ones it promised
+- Each `Sd_node.t` returns an `Rs.t` with the state dimensions it promised, and only the ones it promised
 
 #### Wrap up
 
-Ultimately, when using sd_logic, you should mainly be writing ```Sd_lang.t```s. But, sometimes you will wish to write more complicated pieces of logic that require a deeper understanding of what's going on. Heck, you can even implement your own kind of model that isn't sequential. So have fun with it!
+Ultimately, when using sd_logic, you should mainly be writing `Sd_lang.t`s. But, sometimes you will wish to write more complicated pieces of logic that require a deeper understanding of what's going on. Heck, you can even implement your own kind of model that isn't sequential. So have fun with it!
 
 ### In-depth
 
