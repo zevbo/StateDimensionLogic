@@ -256,7 +256,7 @@ This package has a number of layers. Fully understanding how to use the package 
 
 #### State Dimensions, 'a Sd.t
 
-An ```'a Sd.t``` is a simply a unique key with an associated phantom type as well as a name for debugging. You can use them to refer to data you want to consistently store on the robot. The phantom type represents the type of data that is intended to be stored with the state dimension.
+An ```'a Sd.t``` is a simply a unique key with an associated phantom type as well as a name for debugging. You can use them to refer to data you want to consistently store about your robot (or whatever process you're writing code for). The associated type represents the type of data that is intended to be stored with the state dimension.
 
 To create one, you can use ```Sd.create : string -> ('a -> Sexp.t) -> 'a t```. The below example shows how we could create two state dimensions of differnt types:
 ```ocaml
@@ -264,19 +264,19 @@ let (yaw : float Sd.t) = Sd.create "yaw" Float.sexp_of_t
 let (light_on : bool Sd.t) = Sd.create "light on" Bool.sexp_of_t
 ```
 
-Notice that the ```sexp_of_t``` function indicated to ```Sd.create``` what type the state dimension should be. Notably, if you'd like to create a state dimension without a natural ```sexp_of_t``` function, you could do the following:
+Notice that the ```sexp_of_t``` function indicates to ```Sd.create``` what type the state dimension should be. Notably, if you'd like to create a state dimension without a natural ```sexp_of_t``` function, you could do the following:
 
 ```ocaml
 type a = (* some type without a natural sexp_of_t function *)
 let (a_sd : a Sd.t) = Sd.create "a sd" (fun (a : a) -> String.sexp_of_t "some-a")
 ```
 
-We also offer an ```Sd.Packed``` module for doing type-indepdent ```Sd.t``` operations. First of all, the following is the type defintion for ```Sd.Packed.t```:
+We also offer an ```Sd.Packed``` module for doing type-indepdent ```Sd.t``` operations. The following is the type defintion for ```Sd.Packed.t```:
 ```ocaml
 type t = P : _ sd_t -> t
 ```
 
-Also, the following function is provided in the ```Sd``` module:
+And the following function is provided in the ```Sd``` module:
 ```ocaml
 val pack : 'a Sd.t -> Sd.Packed.t
 ```
@@ -320,7 +320,7 @@ The above functions provide all the core functionality for robot state.
 
 To build up a ```RobotState.t```, you start with the empty state and then use ```set``` in order to add values. You can then use ```find``` to query, and ```remove``` to get rid of a value. Notably, ```removep``` has an option to be called with an ```Sd.Packed.t```, but ```find``` and ```set``` do not as their functionality is dependent on the type paramter of the ```'a Sd.t``` the recieve.
 
-Using those functions, along with the ```keys``` query, you can build up all the functionality you should need. But for convinece sake, we provide a number of other functions. I suggest you read through the comments for each of these functions.
+Using those functions, along with the ```keys``` query, you can build up all the functionality you should need. But for convinece sake, we provide a number of other functions:
 
 ```ocaml
 (** [mem t sd] returns whether or not [t] has data stored for
@@ -342,7 +342,7 @@ val use_extras : t -> t -> t
 val trim_to : t -> Set.M(Sd.Packed).t -> t
 ```
 
-A quick note on representation, runtime and space complexity: the map is represented as a red-black tree. Therefore, most queries take log(n) time, and sets add log(n) space.
+A quick note on representation, runtime and space complexity: the map is created using ```Core.Univ_map```, so it is represented as a red-black tree. Therefore, most queries take log(n) time, and sets add log(n) space if you keep both copies.
 
 ### RobotStateHistory, RobotStateHistory.t or Rsh.t 
 
