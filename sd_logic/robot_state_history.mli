@@ -2,13 +2,23 @@ open! Core
 
 type t [@@deriving sexp_of]
 
+(**
+Creates a [t]. 
+
+[?sd_lengths] Specify amount of history to keep for particular state dimension.
+
+[?min_default_length] defaults to 1. Amount of history to keep for any state dimension 
+not mentioned in [sd_lengths] is the maximum of [min_default_lengths] and the largest length in [~sd_lengths]
+
+[?forced_default_length] allows you to use a default length that is smaller than some in [~sd_lengths], at the cost of runtime. 
+The time complexity for [use] with a state that has m bindings to a t with n states and k entries in sd_lengths
+goes from [O(log(n))] to [O(log(n) + mlog(k))]. Also, the size of sd_lengths will have an entry for each
+Sd.t that has a binding in an Rs.t that is added to the t at anytime.
+*)
 val create
   :  ?sd_lengths:(Sd.Packed.t, int, Sd.Packed.comparator_witness) Map.t
-       (** Specify amount of history to keep for particular state
-           dimensions. *)
   -> ?min_default_length:int
-       (** Defaults to 1. Amount of history to keep for any state dimension
-           not mentioned in [sd_lengths] is the maximum of [min_default_lengths] and the largest length in [sd_lengths] *)
+  -> ?forced_default_length:int
   -> unit
   -> t
 
