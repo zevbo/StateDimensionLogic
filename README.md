@@ -49,9 +49,9 @@ state:
 - The ocaml-platform VSCode extension provides very nice linting
 - I also recommend using the auto-formatter provided by
   ocaml-platform. To do so, you need a .ocamlformat file at the root
-  of your proejct (I suggest copying the one from this repository),
+  of your project (I suggest copying the one from this repository),
   and run the below opam command. Alternatively, you can use the
-  ocaml-format extention on VSCode, but I suggest trying to get the
+  ocaml-format extension on VSCode, but I suggest trying to get the
   auto-formatter to work through ocaml-platform first.
 
   ```
@@ -71,20 +71,26 @@ This tutorial will be split up into three stand-alone sections:
   manner that they were meant
 - _In-depth_: this section will take a look at more of the underlying
   implementation, and will be useful for anyone who is spending more
-  substnatial time with this package. It will allow for faster
+  substantial time with this package. It will allow for faster
   debugging, more effective design, and even the ability to add more
   features.
 
 ### Simple
 
-Let's turn out attention to a simple example, simulaitng a body moving in a single dimension. It starts stationary, and every tick, its linear velocity increases by 0.1 + a random number between 0.5 and -0.5. It also has a light, that will turn on once the robot passes position 50.
+Let's turn out attention to a simple example, simulating a body moving
+in a single dimension. It starts stationary, and every tick, its
+linear velocity increases by 0.1 + a random number between 0.5 and
+-0.5. It also has a light, that will turn on once the robot passes
+position 50.
 
 The example can be found at the following link, and we will look
 through the example bottom up:
 https://github.com/zevbo/RobotState/tree/main/simple_example.
-To run it, simply cd into the run_simple_example directory, and run:
+To run it, simply `cd` into the run_simple_example directory, and run:
 
-```dune exec ./run_simple_example.exe```
+```
+dune exec ./run_simple_example.exe
+```
 
 #### State Dimensions
 
@@ -97,22 +103,25 @@ let (x : float Sd.t) = Sd.create "x" Float.sexp_of_t
 let (v : float Sd.t) = Sd.create "v" Float.sexp_of_t
 let (light_on : bool Sd.t) = Sd.create "light on" Bool.sexp_of_t
 ```
-Here, x, v and light_on are each a unique key (called a state dimension or
-Sd.t) corresponidng to a value being stored corresponding to our robot
-simulation. The first value to Sd.create is the name of the state
-dimension, and the second value is a sexp_of function. This sexp_of function specifies what data is stored with
+
+Here, x, v and light_on are each a unique key (called a state
+dimension or `Sd.t`) corresponding to a value being stored
+corresponding to our robot simulation. The first value to Sd.create is
+the name of the state dimension, and the second value is a `sexp_of`
+function. This `sexp_of` function specifies what data is stored with
 that state dimension. The x position and velocity are both floats, so
-we use Float.sexp_of_t to initialize those state dimensions. Whether
-or not the light is on is a boolean, so we pass Bool.sexp_of_t to
-initalize its Sd.t.
+we use `Float.sexp_of_t` to initialize those state dimensions. Whether
+or not the light is on is a Boolean, so we pass `Bool.sexp_of_t` to
+initialize its `Sd.t`.
 
 #### Sd_nodes (aka "nodes")
 
-Now let's turn our attention towards update_v.ml and update_x.mls. Update_v.ml defines
-an Sd_node.t instance that corresponds to the logic for updating the
-velocity of the robot. Update_x.ml does the same for updating the position.
-We can see the major portion of the two files are the
-following (don't worry if it doesn't immediatly make sense):
+Now let's turn our attention towards `update_v.ml` and
+`update_x.ml`s. `Update_v.ml` defines an `Sd_node.t` instance that
+corresponds to the logic for updating the velocity of the
+robot. `Update_x.ml` does the same for updating the position.  We can
+see the major portion of the two files are the following (don't worry
+if it doesn't immediately make sense):
 
 ```ocaml
 let logic =
@@ -131,39 +140,66 @@ let logic =
 ```
 
 To create the logic for a node, you write the logic inside the
-```%map_open.Sd_lang``` syntax. The logic for a node can always
-be broken up into three parts:
+`%map_open.Sd_lang` syntax. The logic for a node can always be broken
+up into three parts:
 
-- Declaration of required state dimensions
-- Logic
-- Create and return new robot state
+  - Declaration of required state dimensions
+  - Logic
+  - Create and return new robot state
 
-Let's start with "the declaration of required state dimensions." This section is marked by the first let statement, and in it you can use the following functions to retrieve data other nodes have declared about the robot:
+Let's start with "the declaration of required state dimensions." This
+section is marked by the first let statement, and in it you can use
+the following functions to retrieve data other nodes have declared
+about the robot:
+
 ```ocaml
 val sd : 'a Sd.t -> 'a
 val sd_past : 'a Sd.t -> int -> Sd_lang.default -> 'a
 ```
-The sd function gives you the value of a state dimension that has been estimated in the current tick. sd_past gives you the value of a state dimension that was estimated some number of ticks ago (0 = this tick, 1 is previous tick). The default value says what value to use in the case where there are fewer than the request number of states recorded so far. The declaration for Sd_lang.default is the following:
+The sd function gives you the value of a state dimension that has been
+estimated in the current tick. sd_past gives you the value of a state
+dimension that was estimated some number of ticks ago (0 = this tick,
+1 is previous tick). The default value says what value to use in the
+case where there are fewer than the request number of states recorded
+so far. The declaration for `Sd_lang.default` is the following:
+
 ``` ocaml
 type 'a default =
   | V of 'a (* in case of too few states, return associated value of type 'a *)
   | Last (* in case of too few states, use the oldest state *)
   | Safe_last of 'a (* like last, except in case of too few states and only current state exists, use 'a *)
   | Unsafe (* in case of too few states, fail *)
- ```
-To get full safety, it is recommended to try and stick to the ```Safe_last``` and ```V``` cases.
-
-If you need multiple state dimensions, you can use the ```and``` keyword as seen in update_x.ml.
-
-The middle section, the logic, is the simplest: you simply write code just the way you normally would.
-
-In the final section, you need to create and then return a RobotState.t (also aliases as Rs.t). An Rs.t maps 'a Sd.t values to 'a values. The Rs.t you return from the Sd_node.t indicates the new values that those Sd.t values should have for this time step. The following functions and values give you all the functionality you need to create an Rs.t:
-```ocaml
-val empty : Rs.t (* an empty Rs.t *)
-val set : Rs.t -> 'a Sd.t -> 'a -> Rs.t (* returns a new Rs.t with all the bindings of the previous one, as well as the new binding *)
 ```
 
-Often, you will want to write logic that does not estimate anything about the state. In this case, you want to simply return ```Rs.empty```. For an example of this, we can look at the logic of print.ml:
+To get full safety, it is recommended to try and stick to the
+`Safe_last` and `V` cases.
+
+If you need multiple state dimensions, you can use the `and` keyword
+as seen in update_x.ml.
+
+The middle section, the logic, is the simplest: you simply write code
+just the way you normally would.
+
+In the final section, you need to create and then return a
+`RobotState.t` (also aliases as Rs.t). An Rs.t maps `'a Sd.t` values
+to `'a` values. The Rs.t you return from the `Sd_node.t` indicates the
+new values that those `Sd.t` values should have for this time
+step. The following functions and values give you all the
+functionality you need to create an `Rs.t`:
+
+```ocaml
+(** an empty Rs.t *)
+val empty : Rs.t
+
+(** returns a new Rs.t with all the bindings of the previous one, as
+    well as the new binding *)
+val set : Rs.t -> 'a Sd.t -> 'a -> Rs.t
+```
+
+Often, you will want to write logic that does not estimate anything
+about the state. In this case, you want to simply return
+`Rs.empty`. For an example of this, we can look at the logic of
+`print.ml`:
 
 ```ocaml
 let logic =
@@ -177,13 +213,19 @@ let logic =
 ;;
 ```
 
-Finally, to create an Sd_node.t, you also need to create a set declaring what Sd.t values your Sd_node.t returns. For example, in the case of update_v.ml we have:
+Finally, to create an `Sd_node.t`, you also need to create a set
+declaring what `Sd.t` values your `Sd_node.t` returns. For example, in
+the case of `update_v.ml` we have:
+
 ```ocaml
 let sds_estimating = (Set.of_list (module Sd.Packed) [ Sd.pack Sds.v ])
 let node = Sd_node.create logic sds_estimating
 ```
 
-Now, I encourage you to take a look at light_on.ml as well as ```print_est``` declared in main.ml, and attempt to understand them on your own. If you run into trouble, come back and look at this tutorial!
+Now, I encourage you to take a look at light_on.ml as well as
+`print_est` declared in main.ml, and attempt to understand them on
+your own. If you run into trouble, come back and look at this
+tutorial!
 
 #### Sequential Model
 
