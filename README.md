@@ -65,8 +65,8 @@ This tutorial will be split up into three stand-alone sections:
 - _Simple_: this section will be more than enough to get a simple
   robot or simulation working, and keep many of the benefits of the
   package
-- _Detailed_: this section is perfect for anyone looking to create
-  a decently sized project using this package. It will give you the
+- _Detailed_: this section is perfect for anyone looking to create a
+  decently sized project using this package. It will give you the
   tools to use all of the provided features effectively and in the
   manner that they were meant
 - _In-depth_: this section will take a look at more of the underlying
@@ -85,8 +85,8 @@ position 50.
 
 The example can be found at the following link, and we will look
 through the example bottom up:
-https://github.com/zevbo/RobotState/tree/main/simple_example.
-To run it, simply `cd` into the run_simple_example directory, and run:
+https://github.com/zevbo/RobotState/tree/main/simple_example.  To run
+it, simply `cd` into the run_simple_example directory, and run:
 
 ```
 dune exec ./run_simple_example.exe
@@ -307,7 +307,8 @@ This error is unfortunatley not catchable before we call
 state dimension it said it was estimating (or returns an extra state
 dimension), the program will still catch it.
 
-And that's it! You're now ready to use this package on whatever robot you choose!
+And that's it! You're now ready to use this package on whatever robot
+you choose!
 
 ### Detailed
 
@@ -372,9 +373,8 @@ type a = (* some type without a natural sexp_of_t function *)
 let (a_sd : a Sd.t) = Sd.create "a sd" (fun (a : a) -> String.sexp_of_t "some-a")
 ```
 
-We also offer an `Sd.Packed` module for doing type-independent
-`Sd.t` operations. The following is the type definition for
-`Sd.Packed.t`:
+We also offer an `Sd.Packed` module for doing type-independent `Sd.t`
+operations. The following is the type definition for `Sd.Packed.t`:
 
 ```ocaml
 type t = P : _ sd_t -> t
@@ -390,12 +390,14 @@ Thus, if you wanted a list of state dimensions of different types, the following
 let (sd_list : Sd.Packed.t list) = [Sd.pack yaw; Sd.pack light_on]
 ```
 
-Both `Sd` and `Sd.Packed` modules provide comparison
-functionality, along with a number of other things.
+Both `Sd` and `Sd.Packed` modules provide comparison functionality,
+along with a number of other things.
 
 #### Robot State, RobotState.t or Rs.t
 
-The `RobotState` module provides functionality for creating a pure map from `'a Sd.t`s to `'a`s. The following is a subset of the module's mli:
+The `RobotState` module provides functionality for creating a pure map
+from `'a Sd.t`s to `'a`s. The following is a subset of the module's
+mli:
 
 ```ocaml
 type t [@@deriving sexp_of]
@@ -422,11 +424,19 @@ val removep : t -> Sd.Packed.t -> t
 val keys : t -> Set.M(Sd.Packed).t
 ```
 
-The above functions provide all the core functionality for robot state.
+The above functions provide all the core functionality for robot
+state.
 
-To build up a `RobotState.t`, you start with the empty state and then use `set` in order to add values. You can then use `find` to query, and `remove` to get rid of a value. Notably, `removep` has an option to be called with an `Sd.Packed.t`, but `find` and `set` do not as their functionality is dependent on the type paramter of the `'a Sd.t` the recieve.
+To build up a `RobotState.t`, you start with the empty state and then
+use `set` in order to add values. You can then use `find` to query,
+and `remove` to get rid of a value. Notably, `removep` has an option
+to be called with an `Sd.Packed.t`, but `find` and `set` do not as
+their functionality is dependent on the type paramter of the `'a Sd.t`
+the recieve.
 
-Using those functions, along with the `keys` query, you can build up all the functionality you should need. But for convinece sake, we provide a number of other functions:
+Using those functions, along with the `keys` query, you can build up
+all the functionality you should need. But for convinece sake, we
+provide a number of other functions:
 
 ```ocaml
 (** [mem t sd] returns whether or not [t] has data stored for
@@ -448,11 +458,15 @@ val use_extras : t -> t -> t
 val trim_to : t -> Set.M(Sd.Packed).t -> t
 ```
 
-A quick note on representation, runtime and space complexity: the map is created using `Core.Univ_map`, so it is represented as a red-black tree. Therefore, most queries take log(n) time, and sets add log(n) space if you keep both copies.
+A quick note on representation, runtime and space complexity: the map
+is created using `Core.Univ_map`, so it is represented as a red-black
+tree. Therefore, most queries take log(n) time, and sets add log(n)
+space if you keep both copies.
 
 ### RobotStateHistory, RobotStateHistory.t or Rsh.t
 
-A robot state history stores a set of states, each corresponding to a different "tick." The bare bones of the mli is the following:
+A robot state history stores a set of states, each corresponding to a
+different "tick." The bare bones of the mli is the following:
 
 ```ocaml
 
@@ -482,9 +496,20 @@ val length : t -> int
 val default_length : t -> int
 ```
 
-The create function takes two optional arguments. `~sd_lengths` is a map that specifies for how many ticks of data you'd like to keep for each assocaited state dimension. For state dimensions that aren't keys in `~sd_lengths`, they are automatically kept for the largest entry in `~sd_lengths` (or 1 if no value is passed for `~sd_lengths`). The `~min_default_length` allows you to increase the default length from the maximum entry in `~sd_lengths`, to `~min_default_length` if it is larger. This is clearly inconvinient: it would be much better if `~min_default_length` simply dictated the default length on it's own. This currently isn't implemented for computational reasons, but it may be implemented in the future.
+The create function takes two optional arguments. `~sd_lengths` is a
+map that specifies for how many ticks of data you'd like to keep for
+each assocaited state dimension. For state dimensions that aren't keys
+in `~sd_lengths`, they are automatically kept for the largest entry in
+`~sd_lengths` (or 1 if no value is passed for `~sd_lengths`). The
+`~min_default_length` allows you to increase the default length from
+the maximum entry in `~sd_lengths`, to `~min_default_length` if it is
+larger. This is clearly inconvinient: it would be much better if
+`~min_default_length` simply dictated the default length on it's
+own. This currently isn't implemented for computational reasons, but
+it may be implemented in the future.
 
-As for the rest of the methods, with the doc-comments they should be relativelly self-explanatory.
+As for the rest of the methods, with the doc-comments they should be
+relativelly self-explanatory.
 
 For convience sake, `RobotStateHistory` also has the following methods. It might seem daunting, but the last 60% are all simply variations on `mem` and `find`.
 ```ocaml
@@ -531,17 +556,32 @@ val memp : t -> Sd.Packed.t -> bool
 val memp_past : t -> int -> Sd.Packed.t -> bool option
 ```
 
-The first thing I want to draw your attention to is the fact that there is no function to directly set the current (or any past) state. However, you can change the current state using `use`. You may want to reread the description of `RobotState.use` in order to understand `RobotStateHistory.use`. This means that are only two natural ways to build up the  next state of a `Rsh.t`:
+The first thing I want to draw your attention to is the fact that
+there is no function to directly set the current (or any past)
+state. However, you can change the current state using `use`. You may
+want to reread the description of `RobotState.use` in order to
+understand `RobotStateHistory.use`. This means that are only two
+natural ways to build up the next state of a `Rsh.t`:
 - Create the entire `Rs.t` beforehand, and add it with `Rsh.add_state`
-- Add an empty state to `Rs.t`, and then utilize `Rs.use` to build up the current robot state
+- Add an empty state to `Rs.t`, and then utilize `Rs.use` to build up
+  the current robot state
 
 The rest of the functions are just variations on `find` and `mem`.
 
 #### Sd language, Sd_lang.t
 
-A quick note about this section: a lot of the inner workings of `Sd_lang` will be left as a black box in this section. For a look inside, please look at the in-depth explanation. Either way, this will probably be the most difficult section of the tutorial, so if you don't feel comfortable with it immediatly after finishing, I suggest giving it a second read through and/or playing around with it a little
+A quick note about this section: a lot of the inner workings of
+`Sd_lang` will be left as a black box in this section. For a look
+inside, please look at the in-depth explanation. Either way, this will
+probably be the most difficult section of the tutorial, so if you
+don't feel comfortable with it immediatly after finishing, I suggest
+giving it a second read through and/or playing around with it a little
 
-An `'a Sd_lang.t` is used to represent some function on an `Rsh.t` that returns a value of type `'a`. For example, if you wanted to create an `bool Sd_lang.t` that simply returned the value of `bool_sd : bool Sd.t`, it would look like this (don't worry if this is confusing at first; it will be explained more):
+An `'a Sd_lang.t` is used to represent some function on an `Rsh.t`
+that returns a value of type `'a`. For example, if you wanted to
+create an `bool Sd_lang.t` that simply returned the value of
+`bool_sd : bool Sd.t`, it would look like this (don't worry if this is
+confusing at first; it will be explained more):
 
 ```ocaml
 let sd_bool = Sd.create "sd_bool" Bool.sexp_of_t
@@ -562,7 +602,8 @@ print_string (Bool.to_string result)
 ```
 This will output `false`.
 
-Let's now take a deeper look at the decleration of an `Sd_lang.t`. The decleration can be broken up into two parts
+Let's now take a deeper look at the decleration of an `Sd_lang.t`. The
+decleration can be broken up into two parts
 
 - Declaration of required state dimensions
 - Simple Body
@@ -595,11 +636,21 @@ type 'a default =
  ```
 To get full safety, it is recommended to try and stick to the `Safe_last` and `V` cases.
 
-`sd_history` gives back a function where going from indecies to values for the given state dimension. Just like in `Rsh.find_past`, 0 corresponds to the most recent state, and each larger number corresponds to 1 state earlier.
+`sd_history` gives back a function where going from indecies to values
+for the given state dimension. Just like in `Rsh.find_past`, 0
+corresponds to the most recent state, and each larger number
+corresponds to 1 state earlier.
 
-`state` and `state_past` are useful for grabbing the bindings for a number of `Sd.t`s as a `Rs.t`. Notably, if the index for `state_past` is larger than the current number of states in the given `Rsh.t`, then it will simply return an empty `Rs.t`.
+`state` and `state_past` are useful for grabbing the bindings for a
+number of `Sd.t`s as a `Rs.t`. Notably, if the index for `state_past`
+is larger than the current number of states in the given `Rsh.t`, then
+it will simply return an empty `Rs.t`.
 
-Finally, `full_rsh` allows you to simply get the entire `Rsh.t`. It's usually not recommended, because it is both not specific, and foregoes a lot of the advantages of the `Sd_lang.t`s. However, we keep it as we understand there may be functionality that the current methods simply don't provide.
+Finally, `full_rsh` allows you to simply get the entire `Rsh.t`. It's
+usually not recommended, because it is both not specific, and foregoes
+a lot of the advantages of the `Sd_lang.t`s. However, we keep it as we
+understand there may be functionality that the current methods simply
+don't provide.
 
 In the given example, it only uses one of these functions. If you'd like to use more, simply use Ocaml's `and` operator like so:
 ```ocaml
@@ -652,11 +703,18 @@ type safety =
 val execute : safety:safety -> t -> Rsh.t -> Rs.t
 ```
 
-If you choose `Safe` as the safety for the execution, two checks are performed: one to make sure that no extra `Sd.t`s were in the returned `Rs.t`, and one to make sure that every requested `Sd.t` has a binding in the returned `Rs.t`.
+If you choose `Safe` as the safety for the execution, two checks are
+performed: one to make sure that no extra `Sd.t`s were in the returned
+`Rs.t`, and one to make sure that every requested `Sd.t` has a binding
+in the returned `Rs.t`.
 
 #### Sequential Model, Seq_model.t
 
-The idea behind a sequential model is to first take a list of `Sd_node.t`s that should be executed one after another. Importantly, it should provide the ability to run a number of safety checks on the code. What the checks are in specific will be discussed later. For now, here's the mli for using it:
+The idea behind a sequential model is to first take a list of
+`Sd_node.t`s that should be executed one after another. Importantly,
+it should provide the ability to run a number of safety checks on the
+code. What the checks are in specific will be discussed later. For
+now, here's the mli for using it:
 
 ```ocaml
 type t
@@ -671,18 +729,32 @@ val tick : t -> t
 val run : ?min_ms:float -> t -> ticks:int option -> unit
 ```
 
-To create a model, you simply give it a list of `Sd_node.t`s, and a safety if you wish (it defaults to `Safe`). The model is create with an empty `Rsh.t`. Then, you can run one tick using the `tick` function, outputing a `t` with a  new `Rsh.t`. Alternativelly, you can run the model for a number of ticks (or without stop), using `run`. To see this in action, check out `https://github.com/zevbo/StateDimensionLogic/tree/main/simple_example` and/or the simple explanation above.
+To create a model, you simply give it a list of `Sd_node.t`s, and a
+safety if you wish (it defaults to `Safe`). The model is create with
+an empty `Rsh.t`. Then, you can run one tick using the `tick`
+function, outputing a `t` with a new `Rsh.t`. Alternativelly, you can
+run the model for a number of ticks (or without stop), using `run`. To
+see this in action, check out
+`https://github.com/zevbo/StateDimensionLogic/tree/main/simple_example`
+and/or the simple explanation above.
 
-Finally, let's go over the safety checks that it provides. The following checks are performed on creation of the model:
-- All requirements of an `Sd.t` from the current tick have bindings returned by a previous `Sd_node.t`
+Finally, let's go over the safety checks that it provides. The
+following checks are performed on creation of the model:
+- All requirements of an `Sd.t` from the current tick have bindings
+  returned by a previous `Sd_node.t`
 - No two `Sd_node.t`s return bindgins for the same `Sd.t`
 
 And these requiremnts are performed whenever the model is run:
-- Each `Sd_node.t` returns an `Rs.t` with the state dimensions it promised, and only the ones it promised
+- Each `Sd_node.t` returns an `Rs.t` with the state dimensions it
+  promised, and only the ones it promised
 
 #### Wrap up
 
-Ultimately, when using sd_logic, you should mainly be writing `Sd_lang.t`s. But, sometimes you will wish to write more complicated pieces of logic that require a deeper understanding of what's going on. Heck, you can even implement your own kind of model that isn't sequential. So have fun with it!
+Ultimately, when using sd_logic, you should mainly be writing
+`Sd_lang.t`s. But, sometimes you will wish to write more complicated
+pieces of logic that require a deeper understanding of what's going
+on. Heck, you can even implement your own kind of model that isn't
+sequential. So have fun with it!
 
 ### In-depth
 
