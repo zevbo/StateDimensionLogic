@@ -357,7 +357,10 @@ want to consistently store about your robot (or whatever process
 you're writing code for). The associated type represents the type of
 data that is intended to be stored with the state dimension.
 
-To create one, you can use `Sd.create : string -> ('a -> Sexp.t) -> 'a t`. The below example shows how we could create two state dimensions of different types:
+To create one, you can use `Sd.create : string -> ('a -> Sexp.t) -> 'a
+t`. The below example shows how we could create two state dimensions
+of different types:
+
 ```ocaml
 let (yaw : float Sd.t) = Sd.create "yaw" Float.sexp_of_t
 let (light_on : bool Sd.t) = Sd.create "light on" Bool.sexp_of_t
@@ -381,11 +384,14 @@ type t = P : _ sd_t -> t
 ```
 
 And the following function is provided in the `Sd` module:
+
 ```ocaml
 val pack : 'a Sd.t -> Sd.Packed.t
 ```
 
-Thus, if you wanted a list of state dimensions of different types, the following would be valid:
+Thus, if you wanted a list of state dimensions of different types, the
+following would be valid:
+
 ```ocaml
 let (sd_list : Sd.Packed.t list) = [Sd.pack yaw; Sd.pack light_on]
 ```
@@ -498,20 +504,23 @@ val default_length : t -> int
 
 The create function takes two optional arguments. `~sd_lengths` is a
 map that specifies for how many ticks of data you'd like to keep for
-each assocaited state dimension. For state dimensions that aren't keys
+each associated state dimension. For state dimensions that aren't keys
 in `~sd_lengths`, they are automatically kept for the largest entry in
 `~sd_lengths` (or 1 if no value is passed for `~sd_lengths`). The
 `~min_default_length` allows you to increase the default length from
 the maximum entry in `~sd_lengths`, to `~min_default_length` if it is
-larger. This is clearly inconvinient: it would be much better if
+larger. This is clearly inconvenient: it would be much better if
 `~min_default_length` simply dictated the default length on it's
 own. This currently isn't implemented for computational reasons, but
 it may be implemented in the future.
 
 As for the rest of the methods, with the doc-comments they should be
-relativelly self-explanatory.
+relatively self-explanatory.
 
-For convience sake, `RobotStateHistory` also has the following methods. It might seem daunting, but the last 60% are all simply variations on `mem` and `find`.
+For convenience sake, `RobotStateHistory` also has the following
+methods. It might seem daunting, but the last 60% are all simply
+variations on `mem` and `find`.
+
 ```ocaml
 
 (** [get_current_state t] is equivalent to [get_state 0]. O(1) time
@@ -591,7 +600,10 @@ let (simple_sd_lang : bool Sd_lang.t) =
     b]
 ;;
 ```
-Then, the following snippet of code will create an appropriate `Rsh.t`, and execute `simple_sd_lang` on it:
+
+Then, the following snippet of code will create an appropriate
+`Rsh.t`, and execute `simple_sd_lang` on it:
+
 ```ocaml
 let rsh = Rsh.create ~min_default_length:2 ()
 let rs = Rs.set Rs.empty bool_sd false
@@ -608,7 +620,11 @@ decleration can be broken up into two parts
 - Declaration of required state dimensions
 - Simple Body
 
-Let's start with "the declaration of required state dimensions." This section is marked by the first let statement, and in it you can use the following functions to retrieve data other nodes have declared about the robot:
+Let's start with "the declaration of required state dimensions." This
+section is marked by the first let statement, and in it you can use
+the following functions to retrieve data other nodes have declared
+about the robot:
+
 ```ocaml
 val sd : 'a Sd.t -> 'a t
 val sd_past : 'a Sd.t -> int -> 'a default -> 'a t
@@ -617,6 +633,7 @@ val state : (Sd.Packed.t, Sd.Packed.comparator_witness) Set.t -> Rs.t t
 val state_past : (Sd.Packed.t, Sd.Packed.comparator_witness) Set.t -> int -> Rs.t t
 val full_rsh : unit -> Rsh.t t
 ```
+
 In the given example, `sd` is the only of these functions that is
 used. It gives you the value of a state dimension that has been
 estimated in the current tick. However, there is substantially more
@@ -652,7 +669,9 @@ a lot of the advantages of the `Sd_lang.t`s. However, we keep it as we
 understand there may be functionality that the current methods simply
 don't provide.
 
-In the given example, it only uses one of these functions. If you'd like to use more, simply use Ocaml's `and` operator like so:
+In the given example, it only uses one of these functions. If you'd
+like to use more, simply use Ocaml's `and` operator like so:
+
 ```ocaml
 let (simple_sd_lang : bool Sd_lang.t) =
   [%map_open.Sd_lang
@@ -668,7 +687,12 @@ There's one final, and critical, feature in this module:
 ```ocaml
 val dependencies : t -> int Map.M(Sd.Packed).t
 ```
-`dependencies` takes an `Sd.Packed.t`, and tells you how many ticks that state dimension needs to be kept for. A little look ahead: this will be useful for passing in a good value for `~sd_lengths` when creating an `Rsh.t`. It might not be immediatly clear what this means, so let's go over an example.
+
+`dependencies` takes an `Sd.Packed.t`, and tells you how many ticks
+that state dimension needs to be kept for. A little look ahead: this
+will be useful for passing in a good value for `~sd_lengths` when
+creating an `Rsh.t`. It might not be immediatly clear what this means,
+so let's go over an example.
 
 ```ocaml
 let logic =
@@ -681,7 +705,11 @@ let logic =
 
 let deps = Sd_lang.dependencies logic
 ```
-In `deps`, there are two bindigns: `Sds.v` is bound to 0, and `Sds.x` is bound to 2. This is because it needs the current velocity, and the value for `Sds.x` from state with index 2. Notably, each value in `deps` is the oldest version we may need.
+
+In `deps`, there are two bindings: `Sds.v` is bound to 0, and `Sds.x`
+is bound to 2. This is because it needs the current velocity, and the
+value for `Sds.x` from state with index 2. Notably, each value in
+`deps` is the oldest version we may need.
 
 #### Sd node, Sd_node.t
 
@@ -692,7 +720,11 @@ type t =
   ; sds_estimating : Set.M(Sd.Packed).t
   }
 ```
-The output of `logic` of the node represents new bindings to store about the robot, and `sds_estimating` is the set of state dimensions that should have bindings. To execute an `Sd_node.t`, you can use the following function:
+
+The output of `logic` of the node represents new bindings to store
+about the robot, and `sds_estimating` is the set of state dimensions
+that should have bindings. To execute an `Sd_node.t`, you can use the
+following function:
 
 ```ocaml
 type safety =
@@ -732,7 +764,7 @@ val run : ?min_ms:float -> t -> ticks:int option -> unit
 To create a model, you simply give it a list of `Sd_node.t`s, and a
 safety if you wish (it defaults to `Safe`). The model is create with
 an empty `Rsh.t`. Then, you can run one tick using the `tick`
-function, outputing a `t` with a new `Rsh.t`. Alternativelly, you can
+function, outputting a `t` with a new `Rsh.t`. Alternatively, you can
 run the model for a number of ticks (or without stop), using `run`. To
 see this in action, check out
 `https://github.com/zevbo/StateDimensionLogic/tree/main/simple_example`
@@ -742,9 +774,9 @@ Finally, let's go over the safety checks that it provides. The
 following checks are performed on creation of the model:
 - All requirements of an `Sd.t` from the current tick have bindings
   returned by a previous `Sd_node.t`
-- No two `Sd_node.t`s return bindgins for the same `Sd.t`
+- No two `Sd_node.t`s return bindings for the same `Sd.t`
 
-And these requiremnts are performed whenever the model is run:
+And these requirements are performed whenever the model is run:
 - Each `Sd_node.t` returns an `Rs.t` with the state dimensions it
   promised, and only the ones it promised
 
