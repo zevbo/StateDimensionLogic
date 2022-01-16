@@ -245,12 +245,12 @@ And that's it! You're now ready to use this package on whatever robot you choose
 
 ### Detailed
 
-This project has a number of layers. Fully understanding how to use the project requires understanding each individual layer, as well as how they fit together. Before we take a look at each layer individually, we're going to take a step back for a quick overview of each major section.
+This package has a number of layers. Fully understanding how to use the package requires understanding each individual layer, as well as how they fit together. Before we take a look at each layer individually, we're going to take a step back for a quick overview of each major section.
 
-- **State Dimensions, Sd.t**: An ```'a Sd.t``` is a unique key meant to represent some data about the robot. That can be anything from the position of the robot, to that status of a button, to some intermediate data for estimating state about the robot. The type they are paramterized over represents the type of the data that is stored with them.
-- **Robot State, RobotState.t or Rs.t**: An ```Rs.t``` is a glorified univ map from ```'a Sd.t``` values to ```'a``` values.
+- **State Dimensions, Sd.t**: An ```'a Sd.t``` is a unique key meant to represent some data about the process you are using this package for. That can be anything from the position of a robot, to that status of a button, to some intermediate calculation data. The type they are paramterized over represents the type of the data that is stored with them.
+- **Robot State, RobotState.t or Rs.t**: An ```Rs.t``` is a glorified univ map from ```'a Sd.t``` values to ```'a``` values. A little note at this point: this pacakge was originally intended soley for robotics, so for the moment some of the names have "robot" in them. It isn't meant to indicate they can't also be used to describe a different process.
 - **Robot State History, RobotStateHistory.t or Rsh.t**: An ```Rsh.t``` will store a number of robot states, each one corresponding to a different time stamp.
-- **Sd_lang, 'a Sd_lang.t**: In this section, we will keep the underlying mechanics of what an sd lang is a little bit abstract (for more information go to the in-depth section). What you really need to know is that an Sd_lang defines some peice of logic that uses some data from an ```Rsh.t``` and outputs some value of type 'a, just like a function might.
+- **Sd_lang, 'a Sd_lang.t**: In this section, we will keep the underlying mechanics of what an sd lang is a little bit abstract (for more information go to the in-depth section). What you really need to know is that an Sd_lang defines some peice of logic that uses some data from an ```Rsh.t``` and outputs some value of type ```'a```, just like a function might.
 - **Node, Sd_node.t**: An ```Sd_node.t``` is made up of a ```Rs.t Sd_lang.t``` and a variable representing the ```Sd.t``` values that are expected to be returned by the ```Sd_lang.t```.
 - **Model**: A model is not an officially defined concept. Rather, it is meant to denote any type based mainly on (directly or indirectly) ```Sd_lang.t```s that runs the logic of the entire program. Currently, the only model we offer is a sequential model (```Seq_model.t```), which each tick runs the same sequence of ```Sd_node.t```s one after the other.
 
