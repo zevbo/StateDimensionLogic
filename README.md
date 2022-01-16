@@ -229,21 +229,35 @@ tutorial!
 
 #### Sequential Model
 
-At this point, we've written all of the logic of the program. We simply need to run it. To do this, we are going to use a ```Seq_model.t``` at the end of main.ml:
+At this point, we've written all of the logic of the program. We
+simply need to run it. To do this, we are going to use a `Seq_model.t`
+at the end of main.ml:
+
 ```ocaml
 let model = Seq_model.create [ Update_v.node; Update_x.node; Light_on.node; Print.node ]
 let run () = Seq_model.run model ~ticks:(Some 100)
 ```
-Here, ```Seq_model.run``` will take a number of ticks (None for no limit) and run each sd_node, as defined by the list passed to ```Seq_model.create``` one after the other on each tick.
+Here, `Seq_model.run` will take a number of ticks (None for no limit)
+and run each `sd_node`, as defined by the list passed to
+`Seq_model.create` one after the other on each tick.
 
 #### Safety Checks
 
-One of the major features of this package is the safety checks it provides. When you create and then run a ```Seq_model.t```, it is guaranteed that every state dimension requested by each node will be available. To see this check in action, let's try flipping the ```Update_x.node``` and ```Update_v.node```.
+One of the major features of this package is the safety checks it
+provides. When you create and then run a `Seq_model.t`, it is
+guaranteed that every state dimension requested by each node will be
+available. To see this check in action, let's try flipping the
+`Update_x.node` and `Update_v.node`.
+
 ``` ocaml
 ++ let model = Seq_model.create [ Update_x.node; Update_v.node; Light_on.node; Print.node ]
 -- let model = Seq_model.create [ Update_v.node; Update_x.node; Light_on.node; Print.node ]
 ```
-Notably, if we were to run this, because Update_x.node now comes before Update_v.node, it will not know the current velocity. Thus, it should fail. So, what happens when we run ```dune exec ./run_simple_example.exe```?
+
+Notably, if we were to run this, because Update_x.node now comes
+before Update_v.node, it will not know the current velocity. Thus, it
+should fail. So, what happens when we run `dune exec
+./run_simple_example.exe`?
 
 ```
 Uncaught exception:
@@ -254,9 +268,16 @@ Raised at Sd_logic__Seq_model.create in file "sd_logic/seq_model.ml", line 104, 
 Called from Simple_example__Main.model in file "simple_example/main.ml", line 5, characters 12-88
 ```
 
-Rather than failing after you call ```Seq_model.run```, the error is caught by the sequential model when the model is created! The ```Seq_model.t``` will also detect whether or not two nodes are attempting to estimate the same Sd.t, or if a node requires a state dimension that is never estimated (rather than requiring one before it is estimated).
+Rather than failing after you call `Seq_model.run`, the error is
+caught by the sequential model when the model is created! The
+`Seq_model.t` will also detect whether or not two nodes are attempting
+to estimate the same Sd.t, or if a node requires a state dimension
+that is never estimated (rather than requiring one before it is
+estimated).
 
-To see one other kind of safety, let's say we forgot to add the value for ```light_on``` in the light on node:
+To see one other kind of safety, let's say we forgot to add the value
+for `light_on` in the light on node:
+
 ```ocaml
 ++ let _x = sd Sds.x in
 ++ Rs.empty
@@ -264,7 +285,9 @@ To see one other kind of safety, let's say we forgot to add the value for ```lig
 -- Rs.set Rs.empty Sds.light_on Float.(x > 50.0)
 ```
 
-When we run the example using ```dune exec ./run_simple_example.exe``` we get:
+When we run the example using `dune exec ./run_simple_example.exe` we
+get:
+
 ```
 Uncaught exception:
 
@@ -278,44 +301,86 @@ Called from Sd_logic__Seq_model.run.tick in file "sd_logic/seq_model.ml", line 1
 Called from Sd_logic__Seq_model.run in file "sd_logic/seq_model.ml", line 137, characters 18-26
 Called from Dune__exe__Run_simple_example in file "run_simple_example/run_simple_example.ml", line 1, characters 9-35
 ```
-This error is unfortunatley not catchable before we call ```Seq_model.run```. But, if a node ever forgets to return a binding for state dimension it said it was estimating (or returns an extra state dimension), the program will still catch it.
+
+This error is unfortunatley not catchable before we call
+`Seq_model.run`. But, if a node ever forgets to return a binding for
+state dimension it said it was estimating (or returns an extra state
+dimension), the program will still catch it.
 
 And that's it! You're now ready to use this package on whatever robot you choose!
 
 ### Detailed
 
-This package has a number of layers. Fully understanding how to use the package requires understanding each individual layer, as well as how they fit together. Before we take a look at each layer individually, we're going to take a step back for a quick overview of each major section.
+This package has a number of layers. Fully understanding how to use
+the package requires understanding each individual layer, as well as
+how they fit together. Before we take a look at each layer
+individually, we're going to take a step back for a quick overview of
+each major section.
 
-- **State Dimensions, Sd.t**: An ```'a Sd.t``` is a unique key meant to represent some data about the process you are using this package for. That can be anything from the position of a robot, to that status of a button, to some intermediate calculation data. The type they are paramterized over represents the type of the data that is stored with them.
-- **Robot State, RobotState.t or Rs.t**: An ```Rs.t``` is a glorified univ map from ```'a Sd.t``` values to ```'a``` values. A little note at this point: this pacakge was originally intended soley for robotics, so for the moment some of the names have "robot" in them. It isn't meant to indicate they can't also be used to describe a different process.
-- **Robot State History, RobotStateHistory.t or Rsh.t**: An ```Rsh.t``` will store a number of robot states, each one corresponding to a different time stamp.
-- **Sd_lang, 'a Sd_lang.t**: In this section, we will keep the underlying mechanics of what an sd lang is a little bit abstract (for more information go to the in-depth section). What you really need to know is that an Sd_lang defines some peice of logic that uses some data from an ```Rsh.t``` and outputs some value of type ```'a```, just like a function might.
-- **Node, Sd_node.t**: An ```Sd_node.t``` is made up of a ```Rs.t Sd_lang.t``` and a variable representing the ```Sd.t``` values that are expected to be returned by the ```Sd_lang.t```.
-- **Model**: A model is not an officially defined concept. Rather, it is meant to denote any type based mainly on (directly or indirectly) ```Sd_lang.t```s that runs the logic of the entire program. Currently, the only model we offer is a sequential model (```Seq_model.t```), which each tick runs the same sequence of ```Sd_node.t```s one after the other.
+- **State Dimensions, Sd.t**: An `'a Sd.t` is a unique key meant to
+  represent some data about the process you are using this package
+  for. That can be anything from the position of a robot, to that
+  status of a button, to some intermediate calculation data. The type
+  they are paramterized over represents the type of the data that is
+  stored with them.
+- **Robot State, RobotState.t or Rs.t**: An `Rs.t` is a glorified univ
+  map from `'a Sd.t` values to `'a` values. A little note at this
+  point: this pacakge was originally intended soley for robotics, so
+  for the moment some of the names have "robot" in them. It isn't
+  meant to indicate they can't also be used to describe a different
+  process.
+- **Robot State History, RobotStateHistory.t or Rsh.t**: An `Rsh.t`
+  will store a number of robot states, each one corresponding to a
+  different time stamp.
+- **Sd_lang, 'a Sd_lang.t**: In this section, we will keep the
+  underlying mechanics of what an sd lang is a little bit abstract
+  (for more information go to the in-depth section). What you really
+  need to know is that an Sd_lang defines some peice of logic that
+  uses some data from an `Rsh.t` and outputs some value of type `'a`,
+  just like a function might.
+- **Node, Sd_node.t**: An `Sd_node.t` is made up of a `Rs.t Sd_lang.t`
+  and a variable representing the `Sd.t` values that are expected to
+  be returned by the `Sd_lang.t`.
+- **Model**: A model is not an officially defined concept. Rather, it
+  is meant to denote any type based mainly on (directly or indirectly)
+  `Sd_lang.t`s that runs the logic of the entire program. Currently,
+  the only model we offer is a sequential model (`Seq_model.t`), which
+  each tick runs the same sequence of `Sd_node.t`s one after the
+  other.
 
 #### State Dimensions, 'a Sd.t
 
-An ```'a Sd.t``` is a simply a unique key with an associated phantom type as well as a name for debugging. You can use them to refer to data you want to consistently store about your robot (or whatever process you're writing code for). The associated type represents the type of data that is intended to be stored with the state dimension.
+An `'a Sd.t` is a simply a unique key with an associated phantom type
+as well as a name for debugging. You can use them to refer to data you
+want to consistently store about your robot (or whatever process
+you're writing code for). The associated type represents the type of
+data that is intended to be stored with the state dimension.
 
-To create one, you can use ```Sd.create : string -> ('a -> Sexp.t) -> 'a t```. The below example shows how we could create two state dimensions of differnt types:
+To create one, you can use `Sd.create : string -> ('a -> Sexp.t) -> 'a t`. The below example shows how we could create two state dimensions of different types:
 ```ocaml
 let (yaw : float Sd.t) = Sd.create "yaw" Float.sexp_of_t
 let (light_on : bool Sd.t) = Sd.create "light on" Bool.sexp_of_t
 ```
 
-Notice that the ```sexp_of_t``` function indicates to ```Sd.create``` what type the state dimension should be. Notably, if you'd like to create a state dimension without a natural ```sexp_of_t``` function, you could do the following:
+Notice that the `sexp_of_t` function indicates to `Sd.create` what
+type the state dimension should be. Notably, if you'd like to create a
+state dimension without a natural `sexp_of_t` function, you could do
+the following:
 
 ```ocaml
 type a = (* some type without a natural sexp_of_t function *)
 let (a_sd : a Sd.t) = Sd.create "a sd" (fun (a : a) -> String.sexp_of_t "some-a")
 ```
 
-We also offer an ```Sd.Packed``` module for doing type-indepdent ```Sd.t``` operations. The following is the type defintion for ```Sd.Packed.t```:
+We also offer an `Sd.Packed` module for doing type-independent
+`Sd.t` operations. The following is the type definition for
+`Sd.Packed.t`:
+
 ```ocaml
 type t = P : _ sd_t -> t
 ```
 
-And the following function is provided in the ```Sd``` module:
+And the following function is provided in the `Sd` module:
 ```ocaml
 val pack : 'a Sd.t -> Sd.Packed.t
 ```
@@ -325,11 +390,13 @@ Thus, if you wanted a list of state dimensions of different types, the following
 let (sd_list : Sd.Packed.t list) = [Sd.pack yaw; Sd.pack light_on]
 ```
 
-Both ```Sd``` and ```Sd.Packed``` modules provide comparison functionality, along with a number of other things.
+Both `Sd` and `Sd.Packed` modules provide comparison
+functionality, along with a number of other things.
 
 #### Robot State, RobotState.t or Rs.t
 
-The ```RobotState``` module provides functionality for creating a pure map from ```'a Sd.t```s to ```'a```s. The following is a subset of the module's mli:
+The `RobotState` module provides functionality for creating a pure map from `'a Sd.t`s to `'a`s. The following is a subset of the module's mli:
+
 ```ocaml
 type t [@@deriving sexp_of]
 
@@ -357,9 +424,9 @@ val keys : t -> Set.M(Sd.Packed).t
 
 The above functions provide all the core functionality for robot state.
 
-To build up a ```RobotState.t```, you start with the empty state and then use ```set``` in order to add values. You can then use ```find``` to query, and ```remove``` to get rid of a value. Notably, ```removep``` has an option to be called with an ```Sd.Packed.t```, but ```find``` and ```set``` do not as their functionality is dependent on the type paramter of the ```'a Sd.t``` the recieve.
+To build up a `RobotState.t`, you start with the empty state and then use `set` in order to add values. You can then use `find` to query, and `remove` to get rid of a value. Notably, `removep` has an option to be called with an `Sd.Packed.t`, but `find` and `set` do not as their functionality is dependent on the type paramter of the `'a Sd.t` the recieve.
 
-Using those functions, along with the ```keys``` query, you can build up all the functionality you should need. But for convinece sake, we provide a number of other functions:
+Using those functions, along with the `keys` query, you can build up all the functionality you should need. But for convinece sake, we provide a number of other functions:
 
 ```ocaml
 (** [mem t sd] returns whether or not [t] has data stored for
@@ -381,7 +448,7 @@ val use_extras : t -> t -> t
 val trim_to : t -> Set.M(Sd.Packed).t -> t
 ```
 
-A quick note on representation, runtime and space complexity: the map is created using ```Core.Univ_map```, so it is represented as a red-black tree. Therefore, most queries take log(n) time, and sets add log(n) space if you keep both copies.
+A quick note on representation, runtime and space complexity: the map is created using `Core.Univ_map`, so it is represented as a red-black tree. Therefore, most queries take log(n) time, and sets add log(n) space if you keep both copies.
 
 ### RobotStateHistory, RobotStateHistory.t or Rsh.t
 
@@ -415,11 +482,11 @@ val length : t -> int
 val default_length : t -> int
 ```
 
-The create function takes two optional arguments. ```~sd_lengths``` is a map that specifies for how many ticks of data you'd like to keep for each assocaited state dimension. For state dimensions that aren't keys in ```~sd_lengths```, they are automatically kept for the largest entry in ```~sd_lengths``` (or 1 if no value is passed for ```~sd_lengths```). The ```~min_default_length``` allows you to increase the default length from the maximum entry in ```~sd_lengths```, to ```~min_default_length``` if it is larger. This is clearly inconvinient: it would be much better if ```~min_default_length``` simply dictated the default length on it's own. This currently isn't implemented for computational reasons, but it may be implemented in the future.
+The create function takes two optional arguments. `~sd_lengths` is a map that specifies for how many ticks of data you'd like to keep for each assocaited state dimension. For state dimensions that aren't keys in `~sd_lengths`, they are automatically kept for the largest entry in `~sd_lengths` (or 1 if no value is passed for `~sd_lengths`). The `~min_default_length` allows you to increase the default length from the maximum entry in `~sd_lengths`, to `~min_default_length` if it is larger. This is clearly inconvinient: it would be much better if `~min_default_length` simply dictated the default length on it's own. This currently isn't implemented for computational reasons, but it may be implemented in the future.
 
 As for the rest of the methods, with the doc-comments they should be relativelly self-explanatory.
 
-For convience sake, ```RobotStateHistory``` also has the following methods. It might seem daunting, but the last 60% are all simply variations on ```mem``` and ```find```.
+For convience sake, `RobotStateHistory` also has the following methods. It might seem daunting, but the last 60% are all simply variations on `mem` and `find`.
 ```ocaml
 
 (** [get_current_state t] is equivalent to [get_state 0]. O(1) time
@@ -464,17 +531,17 @@ val memp : t -> Sd.Packed.t -> bool
 val memp_past : t -> int -> Sd.Packed.t -> bool option
 ```
 
-The first thing I want to draw your attention to is the fact that there is no function to directly set the current (or any past) state. However, you can change the current state using ```use```. You may want to reread the description of ```RobotState.use``` in order to understand ```RobotStateHistory.use```. This means that are only two natural ways to build up the  next state of a ```Rsh.t```:
-- Create the entire ```Rs.t``` beforehand, and add it with ```Rsh.add_state```
-- Add an empty state to ```Rs.t```, and then utilize ```Rs.use``` to build up the current robot state
+The first thing I want to draw your attention to is the fact that there is no function to directly set the current (or any past) state. However, you can change the current state using `use`. You may want to reread the description of `RobotState.use` in order to understand `RobotStateHistory.use`. This means that are only two natural ways to build up the  next state of a `Rsh.t`:
+- Create the entire `Rs.t` beforehand, and add it with `Rsh.add_state`
+- Add an empty state to `Rs.t`, and then utilize `Rs.use` to build up the current robot state
 
-The rest of the functions are just variations on ```find``` and ```mem```.
+The rest of the functions are just variations on `find` and `mem`.
 
 #### Sd language, Sd_lang.t
 
-A quick note about this section: a lot of the inner workings of ```Sd_lang``` will be left as a black box in this section. For a look inside, please look at the in-depth explanation. Either way, this will probably be the most difficult section of the tutorial, so if you don't feel comfortable with it immediatly after finishing, I suggest giving it a second read through and/or playing around with it a little
+A quick note about this section: a lot of the inner workings of `Sd_lang` will be left as a black box in this section. For a look inside, please look at the in-depth explanation. Either way, this will probably be the most difficult section of the tutorial, so if you don't feel comfortable with it immediatly after finishing, I suggest giving it a second read through and/or playing around with it a little
 
-An ```'a Sd_lang.t``` is used to represent some function on an ```Rsh.t``` that returns a value of type ```'a```. For example, if you wanted to create an ```bool Sd_lang.t``` that simply returned the value of ```bool_sd : bool Sd.t```, it would look like this (don't worry if this is confusing at first; it will be explained more):
+An `'a Sd_lang.t` is used to represent some function on an `Rsh.t` that returns a value of type `'a`. For example, if you wanted to create an `bool Sd_lang.t` that simply returned the value of `bool_sd : bool Sd.t`, it would look like this (don't worry if this is confusing at first; it will be explained more):
 
 ```ocaml
 let sd_bool = Sd.create "sd_bool" Bool.sexp_of_t
@@ -484,7 +551,7 @@ let (simple_sd_lang : bool Sd_lang.t) =
     b]
 ;;
 ```
-Then, the following snippet of code will create an appropriate ```Rsh.t```, and execute ```simple_sd_lang``` on it:
+Then, the following snippet of code will create an appropriate `Rsh.t`, and execute `simple_sd_lang` on it:
 ```ocaml
 let rsh = Rsh.create ~min_default_length:2 ()
 let rs = Rs.set Rs.empty bool_sd false
@@ -493,9 +560,9 @@ let rsh = Rsh.add_state rsh rs
 let result = Sd_lang.execute simple_sd_lang rsh
 print_string (Bool.to_string result)
 ```
-This will output ```false```.
+This will output `false`.
 
-Let's now take a deeper look at the decleration of an ```Sd_lang.t```. The decleration can be broken up into two parts
+Let's now take a deeper look at the decleration of an `Sd_lang.t`. The decleration can be broken up into two parts
 
 - Declaration of required state dimensions
 - Simple Body
@@ -509,9 +576,16 @@ val state : (Sd.Packed.t, Sd.Packed.comparator_witness) Set.t -> Rs.t t
 val state_past : (Sd.Packed.t, Sd.Packed.comparator_witness) Set.t -> int -> Rs.t t
 val full_rsh : unit -> Rsh.t t
 ```
-In the given example, ```sd``` is the only of these functions that is used. It gives you the value of a state dimension that has been estimated in the current tick. However, there is substnatially more functionality one might want when creating sd_langs.
+In the given example, `sd` is the only of these functions that is
+used. It gives you the value of a state dimension that has been
+estimated in the current tick. However, there is substantially more
+functionality one might want when creating `sd_langs`.
 
-```sd_past``` gives you the value of a state dimension that was estimated some number of ticks ago (0 = this tick, 1 is previous tick). The default value denotes what value to use in the case where there are fewer than the request number of states recorded so far.
+`sd_past` gives you the value of a state dimension that was estimated
+some number of ticks ago (0 = this tick, 1 is previous tick). The
+default value denotes what value to use in the case where there are
+fewer than the request number of states recorded so far.
+
 ``` ocaml
 type 'a default =
   | V of 'a (* in case of too few states, return associated value of type 'a *)
