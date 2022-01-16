@@ -4,14 +4,14 @@
 
 State Dimension Logic provides a framework for storing information
 about a robot (or any other process with similar logic with time
-steps) in a single location (i.e.: a determinstic state machine).
+steps) in a single location (i.e.: a deterministic state machine).
 
-For a small example of it's, see
-[https://github.com/zevbo/StateDimensionLogic/tree/main/simple_example].
+You can find a small example of how to use it
+[here](https://github.com/zevbo/StateDimensionLogic/tree/main/simple_example).
 
 ## Installation
 
-If you have opam installed (installation instructrions for opam:
+If you have opam installed (installation instructions for opam:
 https://opam.ocaml.org/doc/Install.html) you can install `sd_logic`
 along with all necessary dependencies with:
 
@@ -21,19 +21,19 @@ opam install sd_logic
 
 ## A Note On Tooling
 
-We're all trying to become better software engineers and programers
+We're all trying to become better software engineers and programmers
 all the time. When we say "better," we're mainly thinking about a few
 things:
 
 1. Writing more reliable code
-2. Completeling projects more quickly
+2. Completing projects more quickly
 3. Creating faster programs
 4. Creating programs with enhanced utility
 
 Ultimately, this project is an attempt to provide tooling to
 dramatically help with 1 and 4. In the spirit of this project, I'd
 like to encourage some extra thought into your choice of tooling with
-the goal of optimizing these 4 ideals. In additon, there are a couple
+the goal of optimizing these 4 ideals. In addition, there are a couple
 of tools in specific I would like to recommend for working with robot
 state:
 
