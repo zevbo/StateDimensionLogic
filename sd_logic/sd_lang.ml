@@ -17,6 +17,8 @@ module T = struct
     | State : (Sd.Packed.t, Sd.Packed.comparator_witness) Set.t -> Rs.t t
     | State_past : (Sd.Packed.t, Sd.Packed.comparator_witness) Set.t * int -> Rs.t t
     | Full_rsh : unit -> Rsh.t t
+
+  type packed = P : 'a t -> packed
 end
 
 include T
@@ -31,22 +33,25 @@ end)
 
 let dependency_of_list l = Map.of_alist_reduce (module Sd.Packed) l ~f:max
 
-let rec dependencies
-    : type a. a t -> (Sd.Packed.t, int, Sd.Packed.comparator_witness) Map.t
+let rec dependencies_p : packed -> (Sd.Packed.t, int, Sd.Packed.comparator_witness) Map.t
   = function
-  | Full_rsh () | Return _ -> Map.empty (module Sd.Packed)
-  | Map2 (a, b, _) ->
-    Map.merge (dependencies a) (dependencies b) ~f:(fun ~key:_k values ->
-        match values with
-        | `Both (v1, v2) -> Some (max v1 v2)
-        | `Left v1 -> Some v1
-        | `Right v2 -> Some v2)
-  | Sd sd -> dependency_of_list [ Sd.pack sd, 0 ]
-  | Sd_past (sd, n, _default) -> dependency_of_list [ Sd.pack sd, n ]
-  | Sd_history (sd, n) -> dependency_of_list [ Sd.pack sd, n ]
-  | State sd_set -> Map.of_key_set sd_set ~f:(fun _key -> 0)
-  | State_past (sd_set, i) -> Map.of_key_set sd_set ~f:(fun _key -> i)
+  | P t ->
+    (match t with
+    | Full_rsh () | Return _ -> Map.empty (module Sd.Packed)
+    | Map2 (a, b, _) ->
+      Map.merge (dependencies_p (P a)) (dependencies_p (P b)) ~f:(fun ~key:_k values ->
+          match values with
+          | `Both (v1, v2) -> Some (max v1 v2)
+          | `Left v1 -> Some v1
+          | `Right v2 -> Some v2)
+    | Sd sd -> dependency_of_list [ Sd.pack sd, 0 ]
+    | Sd_past (sd, n, _default) -> dependency_of_list [ Sd.pack sd, n ]
+    | Sd_history (sd, n) -> dependency_of_list [ Sd.pack sd, n ]
+    | State sd_set -> Map.of_key_set sd_set ~f:(fun _key -> 0)
+    | State_past (sd_set, i) -> Map.of_key_set sd_set ~f:(fun _key -> i))
 ;;
+
+let dependencies t = dependencies_p (P t)
 
 (* -1 implies it doesn't exist period *)
 exception Sd_not_found of (string * int)

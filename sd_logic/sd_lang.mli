@@ -11,6 +11,9 @@ type ('a, _) default =
 
 exception Sd_not_found of (string * int)
 
+type packed = P : 'a t -> packed
+
+val dependencies_p : packed -> int Map.M(Sd.Packed).t
 val dependencies : 'a t -> int Map.M(Sd.Packed).t
 val execute : 'a t -> Rsh.t -> 'a
 
