@@ -244,18 +244,18 @@ And that's it! You're now ready to use this package on whatever robot you choose
 
 ### Detailed
 
-This project has a number of layers. Fully understanding how to use the project requires understanding each individual layer, as well as how they fit together. Before we take a look at each layer individually, we're going to take a step back for a quick overview of each major section.
+This package has a number of layers. Fully understanding how to use the package requires understanding each individual layer, as well as how they fit together. Before we take a look at each layer individually, we're going to take a step back for a quick overview of each major section.
 
-- **State Dimensions, Sd.t**: An ```'a Sd.t``` is a unique key meant to represent some data about the robot. That can be anything from the position of the robot, to that status of a button, to some intermediate data for estimating state about the robot. The type they are paramterized over represents the type of the data that is stored with them.
-- **Robot State, RobotState.t or Rs.t**: An ```Rs.t``` is a glorified univ map from ```'a Sd.t``` values to ```'a``` values.
+- **State Dimensions, Sd.t**: An ```'a Sd.t``` is a unique key meant to represent some data about the process you are using this package for. That can be anything from the position of a robot, to that status of a button, to some intermediate calculation data. The type they are paramterized over represents the type of the data that is stored with them.
+- **Robot State, RobotState.t or Rs.t**: An ```Rs.t``` is a glorified univ map from ```'a Sd.t``` values to ```'a``` values. A little note at this point: this pacakge was originally intended soley for robotics, so for the moment some of the names have "robot" in them. It isn't meant to indicate they can't also be used to describe a different process.
 - **Robot State History, RobotStateHistory.t or Rsh.t**: An ```Rsh.t``` will store a number of robot states, each one corresponding to a different time stamp.
-- **Sd_lang, 'a Sd_lang.t**: In this section, we will keep the underlying mechanics of what an sd lang is a little bit abstract (for more information go to the in-depth section). What you really need to know is that an Sd_lang defines some peice of logic that uses some data from an ```Rsh.t``` and outputs some value of type 'a, just like a function might.
+- **Sd_lang, 'a Sd_lang.t**: In this section, we will keep the underlying mechanics of what an sd lang is a little bit abstract (for more information go to the in-depth section). What you really need to know is that an Sd_lang defines some peice of logic that uses some data from an ```Rsh.t``` and outputs some value of type ```'a```, just like a function might.
 - **Node, Sd_node.t**: An ```Sd_node.t``` is made up of a ```Rs.t Sd_lang.t``` and a variable representing the ```Sd.t``` values that are expected to be returned by the ```Sd_lang.t```.
 - **Model**: A model is not an officially defined concept. Rather, it is meant to denote any type based mainly on (directly or indirectly) ```Sd_lang.t```s that runs the logic of the entire program. Currently, the only model we offer is a sequential model (```Seq_model.t```), which each tick runs the same sequence of ```Sd_node.t```s one after the other.
 
 #### State Dimensions, 'a Sd.t
 
-An ```'a Sd.t``` is a simply a unique key with an associated phantom type as well as a name for debugging. You can use them to refer to data you want to consistently store on the robot. The phantom type represents the type of data that is intended to be stored with the state dimension.
+An ```'a Sd.t``` is a simply a unique key with an associated phantom type as well as a name for debugging. You can use them to refer to data you want to consistently store about your robot (or whatever process you're writing code for). The associated type represents the type of data that is intended to be stored with the state dimension.
 
 To create one, you can use ```Sd.create : string -> ('a -> Sexp.t) -> 'a t```. The below example shows how we could create two state dimensions of differnt types:
 ```ocaml
@@ -263,19 +263,19 @@ let (yaw : float Sd.t) = Sd.create "yaw" Float.sexp_of_t
 let (light_on : bool Sd.t) = Sd.create "light on" Bool.sexp_of_t
 ```
 
-Notice that the ```sexp_of_t``` function indicated to ```Sd.create``` what type the state dimension should be. Notably, if you'd like to create a state dimension without a natural ```sexp_of_t``` function, you could do the following:
+Notice that the ```sexp_of_t``` function indicates to ```Sd.create``` what type the state dimension should be. Notably, if you'd like to create a state dimension without a natural ```sexp_of_t``` function, you could do the following:
 
 ```ocaml
 type a = (* some type without a natural sexp_of_t function *)
 let (a_sd : a Sd.t) = Sd.create "a sd" (fun (a : a) -> String.sexp_of_t "some-a")
 ```
 
-We also offer an ```Sd.Packed``` module for doing type-indepdent ```Sd.t``` operations. First of all, the following is the type defintion for ```Sd.Packed.t```:
+We also offer an ```Sd.Packed``` module for doing type-indepdent ```Sd.t``` operations. The following is the type defintion for ```Sd.Packed.t```:
 ```ocaml
 type t = P : _ sd_t -> t
 ```
 
-Also, the following function is provided in the ```Sd``` module:
+And the following function is provided in the ```Sd``` module:
 ```ocaml
 val pack : 'a Sd.t -> Sd.Packed.t
 ```
@@ -319,7 +319,7 @@ The above functions provide all the core functionality for robot state.
 
 To build up a ```RobotState.t```, you start with the empty state and then use ```set``` in order to add values. You can then use ```find``` to query, and ```remove``` to get rid of a value. Notably, ```removep``` has an option to be called with an ```Sd.Packed.t```, but ```find``` and ```set``` do not as their functionality is dependent on the type paramter of the ```'a Sd.t``` the recieve.
 
-Using those functions, along with the ```keys``` query, you can build up all the functionality you should need. But for convinece sake, we provide a number of other functions. I suggest you read through the comments for each of these functions.
+Using those functions, along with the ```keys``` query, you can build up all the functionality you should need. But for convinece sake, we provide a number of other functions:
 
 ```ocaml
 (** [mem t sd] returns whether or not [t] has data stored for
@@ -341,7 +341,7 @@ val use_extras : t -> t -> t
 val trim_to : t -> Set.M(Sd.Packed).t -> t
 ```
 
-A quick note on representation, runtime and space complexity: the map is represented as a red-black tree. Therefore, most queries take log(n) time, and sets add log(n) space.
+A quick note on representation, runtime and space complexity: the map is created using ```Core.Univ_map```, so it is represented as a red-black tree. Therefore, most queries take log(n) time, and sets add log(n) space if you keep both copies.
 
 ### RobotStateHistory, RobotStateHistory.t or Rsh.t 
 
