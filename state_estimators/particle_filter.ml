@@ -8,7 +8,7 @@ type weighted =
   ; weight : float
   }
 
-exception Unestimatable_sd of Sd.Packed.t [@@derving sexp]
+exception Unestimatable_sd of Sd.Packed.t [@@deriving sexp]
 
 let create_logic
     start

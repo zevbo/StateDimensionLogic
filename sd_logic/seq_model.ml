@@ -31,9 +31,9 @@ let apply t =
       Robot_state_history.use state_history estimated_state)
 ;;
 
-exception Premature_sd_req of Sd.Packed.t [@@derving sexp]
-exception Overwriting_sd_estimate of Sd.Packed.t [@@derving sexp]
-exception Never_written_req of Sd.Packed.t [@@derving sexp]
+exception Premature_sd_req of Sd.Packed.t [@@deriving sexp]
+exception Overwriting_sd_estimate of Sd.Packed.t [@@deriving sexp]
+exception Never_written_req of Sd.Packed.t [@@deriving sexp]
 
 type check_failure =
   | Premature

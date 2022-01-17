@@ -12,8 +12,8 @@ type safety =
   | Warnings
   | Unsafe
 
-exception Missing_sd of Sd.Packed.t [@@derving sexp]
-exception Extra_sd of Sd.Packed.t [@@derving sexp]
+exception Missing_sd of Sd.Packed.t [@@deriving sexp]
+exception Extra_sd of Sd.Packed.t [@@deriving sexp]
 
 let execute ~safety t rsh =
   let estimated_state = Sd_lang.execute t.logic rsh in
