@@ -5,8 +5,8 @@ type safety =
   | Warnings
   | Unsafe
 
-val create : ?safety:safety -> Sd_node.t list -> t
+val create : ?safety:safety -> ?end_cond:bool Sd_lang.t -> Sd_node.t list -> t
 val tick : t -> t
 
 (* max_ticks = -1 -> no max *)
-val run : ?min_ms:float -> ?max_ticks:int -> ?end_cond:bool Sd_lang.t -> t -> unit
+val run : ?no_end_cond:bool -> ?min_ms:float -> ?max_ticks:int -> t -> unit

@@ -9,6 +9,7 @@ type t =
   { nodes : Sd_node.t list
   ; safety : safety
   ; rsh : Rsh.t
+  ; end_cond : bool Sd_lang.t option
   }
 
 let key_dependencies logic =
@@ -66,16 +67,21 @@ let past_check t =
       ~f:(fun full_estimating node -> Set.union full_estimating node.sds_estimating)
   in
   let non_guranteed set = Set.find set ~f:(fun sd -> not (Set.mem full_estimating sd)) in
-  match List.find_map t.nodes ~f:(fun node -> non_guranteed node.sds_estimating) with
+  let all_deps = List.map t.nodes ~f:(fun node -> Sd_lang.dependencies node.logic) in
+  let all_deps =
+    match t.end_cond with
+    | None -> all_deps
+    | Some end_cond -> Sd_lang.dependencies end_cond :: all_deps
+  in
+  match List.find_map all_deps ~f:(fun deps -> non_guranteed (Map.key_set deps)) with
   | None -> Passed
   | Some sd -> Failure (Never_written, sd)
 ;;
 
 let check t =
-  let current_check = current_check t in
   (* todo: add past check as well *)
-  match current_check with
-  | Passed -> past_check t
+  match past_check t with
+  | Passed -> current_check t
   | status -> status
 ;;
 
@@ -93,9 +99,9 @@ let sd_lengths (nodes : Sd_node.t list) =
   Map.map max_indecies ~f:(fun n -> n + 1)
 ;;
 
-let create ?(safety = Safe) nodes =
+let create ?(safety = Safe) ?(end_cond : bool Sd_lang.t Option.t) nodes =
   let sd_lengths = sd_lengths nodes in
-  let model = { safety; nodes; rsh = Rsh.create ~sd_lengths () } in
+  let model = { safety; nodes; rsh = Rsh.create ~sd_lengths (); end_cond } in
   match safety with
   | Unsafe -> model
   | Safe ->
@@ -123,16 +129,13 @@ let create ?(safety = Safe) nodes =
 
 let tick t = { t with rsh = Rsh.add_empty_state (apply t) }
 
-let rec run_checked
-    ?(min_ms = 0.0)
-    ?(max_ticks = 0)
-    ?(end_cond : bool Sd_lang.t Option.t)
-    t
-  =
+let rec run_checked ?(no_end_cond = false) ?(min_ms = 0.0) ?(max_ticks = 0) t =
   let desired_time = Unix.time () +. (min_ms /. 1000.0) in
   let t = { t with rsh = apply t } in
   let to_end =
-    match end_cond with
+    (not no_end_cond)
+    &&
+    match t.end_cond with
     | None -> false
     | Some end_cond -> Sd_lang.execute end_cond t.rsh
   in
@@ -143,12 +146,12 @@ let rec run_checked
     let max_ticks = max (-1) (max_ticks - 1) in
     let delay = Float.max (desired_time -. Unix.time ()) 0.0 in
     Thread.delay delay;
-    run_checked t ~min_ms ~max_ticks ?end_cond)
+    run_checked t ~no_end_cond ~min_ms ~max_ticks)
 ;;
 
-let run ?min_ms ?max_ticks ?end_cond t =
+let run ?no_end_cond ?min_ms ?max_ticks t =
   (match max_ticks with
   | None -> ()
   | Some max_ticks -> assert (max_ticks = -1 || max_ticks > 0));
-  run_checked ?min_ms ?max_ticks ?end_cond t
+  run_checked ?no_end_cond ?min_ms ?max_ticks t
 ;;
