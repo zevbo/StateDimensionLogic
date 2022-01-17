@@ -791,3 +791,7 @@ sequential. So have fun with it!
 ### In-depth
 
 ## Coming Soon
+- Ability to pass a ```bool Sd_lang.t``` to ```Seq_model.run``` representing when to end the program
+- Allow extra sd length requiremnets to ```Seq_model.create```
+- Add ```| Op``` variant in ```Sd_lang``` to return an option when using ```sd_past```
+- Ability to create defaults smaller than the maximum length in ```Rsh.create```
