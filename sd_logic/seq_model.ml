@@ -12,6 +12,7 @@ type t =
   ; end_cond : bool Sd_lang.t option
   }
 
+(* only keys with n = 1 *)
 let key_dependencies logic =
   let dep = Sd_lang.dependencies logic in
   let curr_dep = Map.filter dep ~f:(fun n -> n = 0) in
