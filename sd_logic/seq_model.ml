@@ -30,9 +30,9 @@ let apply t =
       Robot_state_history.use state_history estimated_state)
 ;;
 
-exception Premature_sd_req of string
-exception Overwriting_sd_estimate of string
-exception Never_written_req of string
+exception Premature_sd_req of Sd.Packed.t [@@derving sexp]
+exception Overwriting_sd_estimate of Sd.Packed.t [@@derving sexp]
+exception Never_written_req of Sd.Packed.t [@@derving sexp]
 
 type check_failure =
   | Premature
@@ -107,9 +107,9 @@ let create ?(safety = Safe) ?(end_cond : bool Sd_lang.t Option.t) nodes =
   | Safe ->
     (match check model with
     | Passed -> model
-    | Failure (Premature, sd) -> raise (Premature_sd_req (Sd.Packed.to_string sd))
-    | Failure (Overwrite, sd) -> raise (Overwriting_sd_estimate (Sd.Packed.to_string sd))
-    | Failure (Never_written, sd) -> raise (Never_written_req (Sd.Packed.to_string sd)))
+    | Failure (Premature, sd) -> raise (Premature_sd_req sd)
+    | Failure (Overwrite, sd) -> raise (Overwriting_sd_estimate sd)
+    | Failure (Never_written, sd) -> raise (Never_written_req sd))
   | Warnings ->
     (match check model with
     | Passed -> model
