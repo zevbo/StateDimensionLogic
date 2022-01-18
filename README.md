@@ -2,11 +2,12 @@
 
 ## Quick Intro
 
-State Dimension Logic provides a framework for storing information
-about a robot (or any other process with similar logic with time
-steps) in a single location (i.e.: a deterministic state machine).
+State Dimension Logic provides a framework for writing control
+programs, like the programs you use for controlling a robot, which
+provides a convenient mechanism for keeping track of the key computed
+variables (the "state dimensions") as they evolve over time.
 
-You can find a small example of how to use it
+You can find some examples of how to use it
 [here](https://github.com/zevbo/StateDimensionLogic/tree/main/simple_example).
 
 ## Installation
@@ -77,7 +78,7 @@ This tutorial will be split up into three stand-alone sections:
 
 ### Simple
 
-Let's turn out attention to a simple example, simulating a body moving
+Let's turn our attention to a simple example, simulating a body moving
 in a single dimension. It starts stationary, and every tick, its
 linear velocity increases by 0.1 + a random number between 0.5 and
 -0.5. It also has a light, that will turn on once the robot passes
@@ -104,7 +105,7 @@ let (v : float Sd.t) = Sd.create "v" Float.sexp_of_t
 let (light_on : bool Sd.t) = Sd.create "light on" Bool.sexp_of_t
 ```
 
-Here, x, v and light_on are each a unique key (called a state
+Here, `x`, `v` and `light_on` are each a unique key (called a state
 dimension or `Sd.t`) corresponding to a value being stored
 corresponding to our robot simulation. The first value to Sd.create is
 the name of the state dimension, and the second value is a `sexp_of`
@@ -175,7 +176,9 @@ To get full safety, it is recommended to try and stick to the
 `Safe_last` and `V` cases.
 
 If you need multiple state dimensions, you can use the `and` keyword
-as seen in update_x.ml. If you don't want any data about the robot, make the first let statement:
+as seen in `update_x.ml`. If you don't want any data about the robot,
+make the first let statement:
+
 ```ocaml
 let () = return () in
 ```
@@ -686,7 +689,9 @@ let (simple_sd_lang : bool Sd_lang.t) =
 ;;
 ```
 
-Also, if you don't want any data about the robot, make the first let statement:
+Also, if you don't want any data about the robot, make the first let
+statement:
+
 ```ocaml
 let () = return () in
 ```
@@ -780,6 +785,7 @@ and/or the simple explanation above.
 
 Finally, let's go over the safety checks that it provides. The
 following checks are performed on creation of the model:
+
 - All requirements of an `Sd.t` from the current tick have bindings
   returned by a previous `Sd_node.t`
 - No two `Sd_node.t`s return bindings for the same `Sd.t`
@@ -799,7 +805,11 @@ sequential. So have fun with it!
 ### In-depth
 
 ## Coming Soon
-- Ability to pass a ```bool Sd_lang.t``` to ```Seq_model.run``` representing when to end the program
-- Allow extra sd length requiremnets to ```Seq_model.create```
-- Add ```| Op``` variant in ```Sd_lang``` to return an option when using ```sd_past```
-- Ability to create defaults smaller than the maximum length in ```Rsh.create```
+
+- Ability to pass a `bool Sd_lang.t` to `Seq_model.run`
+  representing when to end the program
+- Allow extra sd length requiremnets to `Seq_model.create`
+- Add `| Op` variant in `Sd_lang` to return an option when
+  using `sd_past`
+- Ability to create defaults smaller than the maximum length in
+  `Rsh.create`
