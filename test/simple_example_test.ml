@@ -1,4 +1,20 @@
 open Simple_example
+open Sd_logic
+
+let%test "missing_sd" =
+  try
+    ignore
+      (Seq_model.create
+         [ Update_x.node; Update_v.node; Light_on.node; Print.node ]
+         ~end_cond:End_cond.end_cond
+        : Seq_model.t);
+    false
+  with
+  | e ->
+    (match e with
+    | Seq_model.Premature_sd_req sd -> Sd.Packed.equal sd (Sd.pack Sds.v)
+    | _ -> false)
+;;
 
 let%expect_test _ =
   Main.run ();

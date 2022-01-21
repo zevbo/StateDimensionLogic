@@ -28,8 +28,8 @@ let create_safety ?(default = Safe) ?(missing_sd = default) ?(extra_sd = default
   { missing_sd; extra_sd; info }
 ;;
 
-exception Missing_sd of string
-exception Extra_sd of string
+exception Missing_sd of Sd.Packed.t [@@deriving sexp]
+exception Extra_sd of Sd.Packed.t [@@deriving sexp]
 
 let execute ~safety t rsh =
   let estimated_state = Sd_lang.execute t.logic rsh in
@@ -53,8 +53,8 @@ let execute ~safety t rsh =
     in
     (match safety, missing, extra with
     | Unsafe, _, _ -> (* should never reach here *) ()
-    | Safe, Some sd, _ -> raise (Missing_sd (Sd.Packed.to_string sd))
-    | Safe, None, Some sd -> raise (Extra_sd (Sd.Packed.to_string sd))
+    | Safe, Some sd, _ -> raise (Missing_sd sd)
+    | Safe, None, Some sd -> raise (Extra_sd sd)
     | Warnings, Some sd, _ ->
       printf
         "Sd_node.Applicable warning: Detected missing sd %s during application"

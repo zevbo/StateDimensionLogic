@@ -10,3 +10,7 @@ val tick : t -> t
 
 (* max_ticks = -1 -> no max *)
 val run : ?no_end_cond:bool -> ?min_ms:float -> ?max_ticks:int -> t -> unit
+
+exception Premature_sd_req of Sd.Packed.t [@@deriving sexp]
+exception Overwriting_sd_estimate of Sd.Packed.t [@@deriving sexp]
+exception Never_written_req of Sd.Packed.t [@@deriving sexp]
