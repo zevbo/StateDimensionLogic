@@ -77,7 +77,9 @@ let create_logic
           (* add required values for estimator *)
           let particle = Rsh.add_state particle inputs in
           let particle =
-            Rsh.use particle (Sd_node.execute ~safety:Sd_node.Safe node particle)
+            Rsh.use
+              particle
+              (Sd_node.execute ~safety:(Sd_node.create_safety ()) node particle)
           in
           particle)
     in
