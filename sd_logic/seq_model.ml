@@ -20,12 +20,13 @@ let create_safety
   =
   let info =
     { run_checks =
-        Safety_level.compare
-          (Safety_level.max
-             (Safety_level.max premature_sd_req overwritten_sd)
-             never_written_sd_req)
-          Safety_level.Unsafe
-        = 0
+        not
+          (Safety_level.compare
+             (Safety_level.max
+                (Safety_level.max premature_sd_req overwritten_sd)
+                never_written_sd_req)
+             Safety_level.Unsafe
+          = 0)
     }
   in
   { premature_sd_req; overwritten_sd; never_written_sd_req; node_safety; info }
