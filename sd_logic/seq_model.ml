@@ -1,9 +1,36 @@
 open! Core
 
+type safety_info = { run_checks : bool }
+
 type safety =
-  | Safe
-  | Warnings
-  | Unsafe
+  { premature_sd_req : Safety_level.t
+  ; overwritten_sd : Safety_level.t
+  ; never_written_sd_req : Safety_level.t
+  ; node_safety : Sd_node.safety
+  ; info : safety_info
+  }
+
+let create_safety
+    ?(default = Safety_level.Safe)
+    ?(premature_sd_req = default)
+    ?(overwritten_sd = default)
+    ?(never_written_sd_req = default)
+    ?(node_safety = Sd_node.create_safety ~default ())
+    ()
+  =
+  let info =
+    { run_checks =
+        not
+          (Safety_level.compare
+             (Safety_level.max
+                (Safety_level.max premature_sd_req overwritten_sd)
+                never_written_sd_req)
+             Safety_level.Unsafe
+          = 0)
+    }
+  in
+  { premature_sd_req; overwritten_sd; never_written_sd_req; node_safety; info }
+;;
 
 type t =
   { nodes : Sd_node.t list
@@ -21,13 +48,9 @@ let key_dependencies logic =
 
 let apply t =
   List.fold_left t.nodes ~init:t.rsh ~f:(fun state_history node ->
-      let est_safety =
-        match t.safety with
-        | Unsafe -> Sd_node.Unsafe
-        | Warnings -> Sd_node.Warnings
-        | Safe -> Sd_node.Safe
+      let estimated_state =
+        Sd_node.execute ~safety:t.safety.node_safety node state_history
       in
-      let estimated_state = Sd_node.execute ~safety:est_safety node state_history in
       Robot_state_history.use state_history estimated_state)
 ;;
 
@@ -100,32 +123,34 @@ let sd_lengths (nodes : Sd_node.t list) =
   Map.map max_indecies ~f:(fun n -> n + 1)
 ;;
 
-let create ?(safety = Safe) ?(end_cond : bool Sd_lang.t Option.t) nodes =
+let create ?(safety = create_safety ()) ?(end_cond : bool Sd_lang.t Option.t) nodes =
   let sd_lengths = sd_lengths nodes in
   let model = { safety; nodes; rsh = Rsh.create ~sd_lengths (); end_cond } in
-  match safety with
-  | Unsafe -> model
-  | Safe ->
-    (match check model with
-    | Passed -> model
-    | Failure (Premature, sd) -> raise (Premature_sd_req sd)
-    | Failure (Overwrite, sd) -> raise (Overwriting_sd_estimate sd)
-    | Failure (Never_written, sd) -> raise (Never_written_req sd))
-  | Warnings ->
-    (match check model with
-    | Passed -> model
-    | Failure (error, sd) ->
-      let warning =
-        match error with
-        | Premature -> "premature require"
-        | Overwrite -> "possible overwrite"
-        | Never_written -> "unestimated past require"
-      in
+  let exec_failure safety_level exc warning sd =
+    match safety_level with
+    | Safety_level.Unsafe -> ()
+    | Safety_level.Warnings ->
       printf
         "Sd_node.Applicable warning: Detected %s of sd %s\n"
         warning
-        (Sd.Packed.to_string sd);
-      model)
+        (Sd.Packed.to_string sd)
+    | Safety_level.Safe -> raise exc
+  in
+  if model.safety.info.run_checks
+  then (
+    match check model with
+    | Passed -> ()
+    | Failure (Premature, sd) ->
+      exec_failure safety.premature_sd_req (Premature_sd_req sd) "premature require" sd
+    | Failure (Overwrite, sd) ->
+      exec_failure safety.overwritten_sd (Overwriting_sd_estimate sd) "overwrite" sd
+    | Failure (Never_written, sd) ->
+      exec_failure
+        safety.never_written_sd_req
+        (Never_written_req sd)
+        "unestimated past require"
+        sd);
+  model
 ;;
 
 let tick t = { t with rsh = Rsh.add_empty_state (apply t) }

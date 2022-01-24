@@ -81,82 +81,61 @@ let end_cond =
     Float.(b > 1.0)]
 ;;
 
-let%test "premature_req" =
+let check_error ?end_cond nodes pass_safety to_run =
+  let model_pass = Seq_model.create ~safety:pass_safety ?end_cond nodes in
+  if to_run then Seq_model.run ~max_ticks:1 model_pass;
   try
-    ignore (Seq_model.create [ set_b_node; set_a_node ] ~end_cond : Seq_model.t);
-    false
+    let model = Seq_model.create nodes in
+    if to_run then Seq_model.run ~max_ticks:1 model
   with
-  | e ->
-    (match e with
-    | Seq_model.Premature_sd_req sd -> Sd.Packed.equal sd (Sd.pack Sds.a)
-    | _ -> false)
+  | e -> print_string (Exn.to_string e)
 ;;
 
-let%test "premature_req2" =
-  try
-    ignore (Seq_model.create [ set_b_node2; set_a_node ] ~end_cond : Seq_model.t);
-    false
-  with
-  | e ->
-    (match e with
-    | Seq_model.Premature_sd_req sd -> Sd.Packed.equal sd (Sd.pack Sds.a)
-    | _ -> false)
+let%expect_test "premature_req" =
+  check_error
+    [ set_b_node; set_a_node ]
+    (Seq_model.create_safety ~premature_sd_req:Unsafe ())
+    false;
+  [%expect {| (sd_logic/seq_model.ml.Premature_sd_req a) |}]
 ;;
 
-let%test "premature_req3" =
-  try
-    ignore (Seq_model.create [ bad_set_a ] : Seq_model.t);
-    false
-  with
-  | e ->
-    (match e with
-    | Seq_model.Premature_sd_req sd -> Sd.Packed.equal sd (Sd.pack Sds.a)
-    | _ -> false)
+let%expect_test "premature_req2" =
+  check_error
+    [ set_b_node2; set_a_node ]
+    (Seq_model.create_safety ~premature_sd_req:Unsafe ())
+    false;
+  [%expect {| (sd_logic/seq_model.ml.Premature_sd_req a) |}]
 ;;
 
-let%test "never_written_req" =
-  try
-    let model = Seq_model.create [ bad_node; set_a_node; set_b_node ] ~end_cond in
-    Seq_model.run ~max_ticks:10 model;
-    false
-  with
-  | e ->
-    (match e with
-    | Seq_model.Never_written_req sd -> Sd.Packed.equal sd (Sd.pack Sds.bad)
-    | _ -> false)
+let%expect_test "premature_req3" =
+  check_error [ bad_set_a ] (Seq_model.create_safety ~premature_sd_req:Unsafe ()) false;
+  [%expect {| (sd_logic/seq_model.ml.Premature_sd_req a) |}]
 ;;
 
-let%test "overwriting_est" =
-  try
-    ignore (Seq_model.create [ set_a_node; set_a_node ] : Seq_model.t);
-    false
-  with
-  | e ->
-    (match e with
-    | Seq_model.Overwriting_sd_estimate sd -> Sd.Packed.equal sd (Sd.pack Sds.a)
-    | _ -> false)
+let%expect_test "never_written_req" =
+  check_error
+    [ bad_node; set_a_node; set_b_node ]
+    (Seq_model.create_safety ~never_written_sd_req:Unsafe ())
+    false;
+  [%expect {| (sd_logic/seq_model.ml.Never_written_req bad) |}]
 ;;
 
-let%test "extra_est" =
-  try
-    let model = (Seq_model.create [ extra_set_b_node ] : Seq_model.t) in
-    Seq_model.run ~max_ticks:1 model;
-    false
-  with
-  | e ->
-    (match e with
-    | Sd_node.Extra_sd sd -> Sd.Packed.equal sd (Sd.pack Sds.a)
-    | _ -> false)
+let%expect_test "overwriting_est" =
+  check_error
+    [ set_a_node; set_a_node ]
+    (Seq_model.create_safety ~overwritten_sd:Unsafe ())
+    false;
+  [%expect {| (sd_logic/seq_model.ml.Overwriting_sd_estimate a) |}]
 ;;
 
-let%test "missing_est" =
-  try
-    let model = (Seq_model.create [ missing_set_b_node ] : Seq_model.t) in
-    Seq_model.run ~max_ticks:1 model;
-    false
-  with
-  | e ->
-    (match e with
-    | Sd_node.Missing_sd sd -> Sd.Packed.equal sd (Sd.pack Sds.b)
-    | _ -> false)
+let%expect_test "extra_est" =
+  let node_safety = Sd_node.create_safety ~extra_sd:Unsafe () in
+  check_error [ extra_set_b_node ] (Seq_model.create_safety ~node_safety ()) true;
+  [%expect {| (sd_logic/sd_node.ml.Extra_sd a) |}]
+;;
+
+let%expect_test "missing_est" =
+  let node_safety = Sd_node.create_safety ~missing_sd:Unsafe () in
+  check_error [ missing_set_b_node ] (Seq_model.create_safety ~node_safety ()) true;
+  [%expect {| (sd_logic/sd_node.ml.Missing_sd b) |}]
 ;;

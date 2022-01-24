@@ -1,11 +1,18 @@
 type t
+type safety
 
-type safety =
-  | Safe
-  | Warnings
-  | Unsafe
+val create_safety
+  :  ?default:Safety_level.t
+  -> ?premature_sd_req:Safety_level.t
+  -> ?overwritten_sd:Safety_level.t
+  -> ?never_written_sd_req:Safety_level.t
+  -> ?node_safety:Sd_node.safety
+  -> unit
+  -> safety
 
+(** safety defaults to maximum safety *)
 val create : ?safety:safety -> ?end_cond:bool Sd_lang.t -> Sd_node.t list -> t
+
 val tick : t -> t
 
 (* max_ticks = -1 -> no max *)
