@@ -7,18 +7,31 @@ type t =
 
 let create logic sds_estimating = { logic; sds_estimating }
 
-type safety =
-  | Safe
-  | Warnings
-  | Unsafe
+type safety_info = { max_safety : Safety_level.t }
 
-exception Missing_sd of string
-exception Extra_sd of string
+type safety =
+  { missing_sd : Safety_level.t
+  ; extra_sd : Safety_level.t
+  ; info : safety_info
+  }
+
+let create_safety
+    ?(default = Safety_level.Safe)
+    ?(missing_sd = default)
+    ?(extra_sd = default)
+    ()
+  =
+  let info = { max_safety = Safety_level.max missing_sd extra_sd } in
+  { missing_sd; extra_sd; info }
+;;
+
+exception Missing_sd of Sd.Packed.t [@@deriving sexp]
+exception Extra_sd of Sd.Packed.t [@@deriving sexp]
 
 let execute ~safety t rsh =
   let estimated_state = Sd_lang.execute t.logic rsh in
   let expected_keys = t.sds_estimating in
-  (match safety with
+  (match safety.info.max_safety with
   | Unsafe -> ()
   | Safe | Warnings ->
     let missing =
@@ -29,18 +42,21 @@ let execute ~safety t rsh =
         ~f:(fun key -> not (Set.mem expected_keys key))
         (Robot_state.keys estimated_state)
     in
-    (match safety, missing, extra with
-    | Unsafe, _, _ -> (* should never reach here *) ()
-    | Safe, Some sd, _ -> raise (Missing_sd (Sd.Packed.to_string sd))
-    | Safe, None, Some sd -> raise (Extra_sd (Sd.Packed.to_string sd))
-    | Warnings, Some sd, _ ->
-      printf
-        "Sd_node.Applicable warning: Detected missing sd %s during application"
-        (Sd.Packed.to_string sd)
-    | Warnings, None, Some sd ->
-      printf
-        "Sd_node.Applicable warning: Detected extra sd %s during application"
-        (Sd.Packed.to_string sd)
-    | _, None, None -> ()));
+    let run_check one_safety result exc msg =
+      match one_safety, result with
+      | Safety_level.Unsafe, _ | _, None -> ()
+      | Safety_level.Warnings, Some sd -> printf msg (Sd.Packed.to_string sd)
+      | Safety_level.Safe, Some sd -> raise (exc sd)
+    in
+    run_check
+      safety.missing_sd
+      missing
+      (fun sd -> Missing_sd sd)
+      "Sd_node.Applicable warning: Detected missing sd %s during application";
+    run_check
+      safety.extra_sd
+      extra
+      (fun sd -> Extra_sd sd)
+      "Sd_node.Applicable warning: Detected missing sd %s during application");
   estimated_state
 ;;

@@ -8,7 +8,7 @@ type weighted =
   ; weight : float
   }
 
-exception Unestimatable_sd of string
+exception Unestimatable_sd of Sd.Packed.t [@@deriving sexp]
 
 let create_logic
     start
@@ -24,7 +24,7 @@ let create_logic
   in
   (match unestimated_sd with
   | None -> ()
-  | Some sd -> raise (Unestimatable_sd (Sd.Packed.to_string (Sd.pack sd))));
+  | Some sd -> raise (Unestimatable_sd (Sd.pack sd)));
   (* storing the list of particles in this sd *)
   let particles_sd =
     Sd.create "particles_sd" (fun (_particles : particle list) ->
@@ -77,7 +77,9 @@ let create_logic
           (* add required values for estimator *)
           let particle = Rsh.add_state particle inputs in
           let particle =
-            Rsh.use particle (Sd_node.execute ~safety:Sd_node.Safe node particle)
+            Rsh.use
+              particle
+              (Sd_node.execute ~safety:(Sd_node.create_safety ()) node particle)
           in
           particle)
     in
