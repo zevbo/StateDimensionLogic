@@ -26,4 +26,8 @@ let connections =
 ;;
 
 let model = General_model.create connections Slow_desc.node
-let run () = General_model.run_tick ~safety:Sd_est.Safe model
+
+let run () =
+  let _model = General_model.run_tick ~safety:Sd_est.Safe model in
+  ()
+;;

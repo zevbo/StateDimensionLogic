@@ -54,9 +54,37 @@ let rec dependencies cnodes ?(explored = Set.empty (module Int)) (on : Sd_node.p
           (Sd_lang.dependency_union (dependencies t_true) (dependencies t_false)))
 ;;
 
+let assert_all_nodes_known (connections : Sd_node.conn list) cnodes =
+  let assert_in (from : _ Sd_node.t) (Sd_node.P node) =
+    if not (Map.mem cnodes node.id)
+    then
+      raise
+        (Invalid_argument
+           (Printf.sprintf
+              "Invalid connections list for General_model.create: Node %n links to node \
+               %n, but there is no connection entry for node %n"
+              from.id
+              node.id
+              node.id))
+  in
+  List.iter connections ~f:(fun (Conn (node, next)) ->
+      let (nodes : Sd_node.pt list) =
+        match node.info, next with
+        | Exit, () -> []
+        | Tick, node -> [ node ]
+        | Fork, (n1, n2) -> [ n1; n2 ]
+        | Est _, node -> [ node ]
+        | Desc _, (n1, n2) -> [ n1; n2 ]
+      in
+      List.iter nodes ~f:(assert_in node))
+;;
+
 let create (connections : Sd_node.conn list) (start : 'a Sd_node.t) =
   let cnodes_l =
     List.map connections ~f:(fun (Conn (node, next)) -> node.id, Cnode.(P { node; next }))
+  in
+  let cnodes_l =
+    (Sd_node.exit.id, Cnode.(P { node = Sd_node.exit; next = () })) :: cnodes_l
   in
   let cnodes_op = Map.of_alist (module Int) cnodes_l in
   let cnodes =
@@ -69,8 +97,10 @@ let create (connections : Sd_node.conn list) (start : 'a Sd_node.t) =
               id))
     | `Ok cnodes -> cnodes
   in
+  assert_all_nodes_known connections cnodes;
+  let sd_lengths = Map.map (dependencies cnodes (P start)) ~f:(fun n -> n + 1) in
   let t =
-    { rsh = ref (Rsh.create ~sd_lengths:(dependencies cnodes (P start)) ())
+    { rsh = ref (Rsh.create ~sd_lengths ())
     ; continuations = ref []
     ; rsh_lock = Mutex.create ()
     ; continuations_lock = Mutex.create ()

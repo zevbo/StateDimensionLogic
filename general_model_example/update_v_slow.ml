@@ -5,6 +5,7 @@ open Simple_example
 let logic =
   [%map_open.Sd_lang
     let v = sd_past Sds.v 1 (V 0.0) in
+    print_endline "In update v slow";
     Rs.set Rs.empty Sds.v (Float.max (v -. 0.5) 0.0)]
 ;;
 

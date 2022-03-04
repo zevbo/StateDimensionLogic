@@ -5,6 +5,7 @@ let logic =
   [%map_open.Sd_lang
     let x = sd Sds.x
     and v = sd Sds.v in
+    print_endline "In slow_desc";
     x +. (10. *. v) > 100.0]
 ;;
 
