@@ -155,22 +155,3 @@ let%expect_test "rsh, sd_lengths:0" =
     [%expect
       {| entries in ~sd_lengths in Robot_state_history.create must be positive. Given 0 for key x |}]
 ;;
-
-let%expect_test "forced_default_length" =
-  let rsh =
-    Rsh.create
-      ~forced_default_length:3
-      ~sd_lengths:(Map.of_alist_exn (module Sd.Packed) [ Sd.pack x, 5 ])
-      ()
-  in
-  let rs = Rs.set (Rs.set Rs.empty x 0.0) y 0.0 in
-  let rsh = List.fold_left ~init:rsh ~f:Rsh.add_state (List.init 10 ~f:(fun _ -> rs)) in
-  print_s (Rsh.sexp_of_t rsh);
-  [%expect {|
-    ((states
-      (((data ((x 0) (y 0))) (sd_map <opaque>))
-       ((data ((x 0) (y 0))) (sd_map <opaque>))
-       ((data ((x 0) (y 0))) (sd_map <opaque>))
-       ((data ((x 0))) (sd_map <opaque>)) ((data ((x 0))) (sd_map <opaque>))))
-     (max_length 5)) |}]
-;;

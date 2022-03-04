@@ -6,29 +6,12 @@ type t =
   { past_states : (tick, Robot_state.t, Int.comparator_witness) Map.t
   ; curr_state : Robot_state.t
   ; tick : tick
-  ; lengths_to_sds : (int, Sd.set, Int.comparator_witness) Map.t
+  ; lengths_to_sds : (int, Sd.Packed.t list, Int.comparator_witness) Map.t
   ; max_length : int
-  ; forced_default_length : int option
-  ; known_lengths : Sd.set
   }
 
-let update_lengths_to_sds map len sd =
-  Map.set
-    map
-    ~key:len
-    ~data:
-      (Set.add
-         (Option.value (Map.find map len) ~default:(Set.empty (module Sd.Packed)))
-         sd)
-;;
-
 (* note: for the moment, default_length only matters if it's the max_length *)
-let create
-    ?(sd_lengths = Map.empty (module Sd.Packed))
-    ?(min_default_length = 1)
-    ?forced_default_length
-    ()
-  =
+let create ?(sd_lengths = Map.empty (module Sd.Packed)) ?(min_default_length = 1) () =
   if min_default_length <= 0
   then
     raise
@@ -56,15 +39,14 @@ let create
     Map.fold
       sd_lengths
       ~init:(Map.empty (module Int))
-      ~f:(fun ~key ~data map -> update_lengths_to_sds map data key)
+      ~f:(fun ~key ~data map ->
+        Map.set map ~key:data ~data:(key :: Option.value (Map.find map data) ~default:[]))
   in
   { past_states = Map.empty (module Int)
   ; tick = 0
   ; curr_state = Robot_state.empty
   ; lengths_to_sds
   ; max_length
-  ; forced_default_length
-  ; known_lengths = Map.key_set sd_lengths
   }
 ;;
 
@@ -141,7 +123,7 @@ let add_empty_state t =
           | None -> map
           | Some sds_to_delete ->
             let state =
-              Set.fold sds_to_delete ~f:(fun state sd -> Rs.removep state sd) ~init:state
+              List.fold sds_to_delete ~f:(fun state sd -> Rs.removep state sd) ~init:state
             in
             Map.set map ~key:tick ~data:state)
         ~init:past_states
@@ -150,17 +132,7 @@ let add_empty_state t =
 ;;
 
 let use t ?(to_use = None) (state : Robot_state.t) =
-  let lengths_to_sds =
-    match t.forced_default_length with
-    | None -> t.lengths_to_sds
-    | Some def_l ->
-      let keys = Rs.keys state in
-      Set.fold keys ~init:t.lengths_to_sds ~f:(fun map sd ->
-          if not (Set.mem t.known_lengths sd)
-          then update_lengths_to_sds map def_l sd
-          else map)
-  in
-  { t with curr_state = Robot_state.use ~to_use t.curr_state state; lengths_to_sds }
+  { t with curr_state = Robot_state.use ~to_use t.curr_state state }
 ;;
 
 let use_extras t (state : Robot_state.t) =
