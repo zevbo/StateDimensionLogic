@@ -9,7 +9,7 @@ type ('a, _) default =
   | Op : ('a, 'a Option.t) default
 (* in case of too few states, fail *)
 
-exception Sd_not_found of (string * int)
+exception Sd_not_found of (Sd.Packed.t * int) [@@deriving sexp]
 
 type packed = P : 'a t -> packed
 
