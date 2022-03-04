@@ -31,7 +31,7 @@ let model = General_model.create connections Slow_desc.node
 
 let run () =
   let _model =
-    General_model.run_tick ~safety:(Sd_est.create_safety ~default:Safe ()) model
+    General_model.run model ~safety:(Sd_est.create_safety ~default:Safe ()) ~num_ticks:80
   in
   ()
 ;;

@@ -170,10 +170,19 @@ let rec run_thread_tick ctxt ~safety =
 type safety = Sd_est.safety
 
 let run_tick t ~safety =
+  let continuations = !(t.continuations) in
+  t.continuations := [];
   let threads =
-    List.map !(t.continuations) ~f:(fun ctxt ->
+    List.map continuations ~f:(fun ctxt ->
         Thread.create ~on_uncaught_exn:`Print_to_stderr (run_thread_tick ~safety) ctxt)
   in
   List.iter threads ~f:Thread.join;
+  t.rsh := Rsh.add_empty_state !(t.rsh);
   t
+;;
+
+let rec run t ~safety ~num_ticks =
+  match num_ticks, !(t.continuations) with
+  | 0, _ | _, [] -> t
+  | _ -> run (run_tick t ~safety) ~safety ~num_ticks:(num_ticks - 1)
 ;;

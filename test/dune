@@ -1,6 +1,6 @@
 (library
  (name test)
- (libraries core sd_logic ounit2 simple_example)
+ (libraries core sd_logic ounit2 simple_example general_model_example)
  (inline_tests)
  (preprocess
   (pps ppx_jane)))

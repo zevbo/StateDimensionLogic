@@ -2,12 +2,8 @@ open! Core
 
 type id = int
 
-let global_id = ref (-1)
-
-let get_id () =
-  global_id := !global_id + 1;
-  !global_id
-;;
+let global_id = Atomic.make 0
+let get_id () = Atomic.fetch_and_add global_id 1
 
 type _ info =
   | Exit : unit info
