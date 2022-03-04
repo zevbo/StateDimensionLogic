@@ -1,21 +1,24 @@
 open! Core
 
 module T = struct
-  type 'a default =
-    | V of 'a
-    | Last
-    | Safe_last of 'a
-    | Unsafe
+  type ('a, _) default =
+    | V : 'a -> ('a, 'a) default (* in case of too few states, return associated value of type 'a *)
+    | Last : ('a, 'a) default (* in case of too few states, use the oldest state *)
+    | Safe_last : 'a -> ('a, 'a) default (* like last, except in case of too few states and only current state exists, use 'a *)
+    | Unsafe : ('a, 'a) default
+    | Op : ('a, 'a Option.t) default
 
   type _ t =
     | Return : 'a -> 'a t
     | Map2 : 'a t * 'b t * ('a -> 'b -> 'c) -> 'c t
     | Sd : 'a Sd.t -> 'a t
-    | Sd_past : 'a Sd.t * int * 'a default -> 'a t
+    | Sd_past : 'a Sd.t * int * ('a, 'b) default -> 'b t
     | Sd_history : 'a Sd.t * int -> (int -> 'a option) t
     | State : (Sd.Packed.t, Sd.Packed.comparator_witness) Set.t -> Rs.t t
     | State_past : (Sd.Packed.t, Sd.Packed.comparator_witness) Set.t * int -> Rs.t t
     | Full_rsh : unit -> Rsh.t t
+
+  type packed = P : 'a t -> packed
 end
 
 include T
@@ -30,24 +33,26 @@ end)
 
 let dependency_of_list l = Map.of_alist_reduce (module Sd.Packed) l ~f:max
 
-let rec dependencies
-    : type a. a t -> (Sd.Packed.t, int, Sd.Packed.comparator_witness) Map.t
+let rec dependencies_p : packed -> (Sd.Packed.t, int, Sd.Packed.comparator_witness) Map.t
   = function
-  | Full_rsh () | Return _ -> Map.empty (module Sd.Packed)
-  | Map2 (a, b, _) ->
-    Map.merge (dependencies a) (dependencies b) ~f:(fun ~key:_k values ->
-        match values with
-        | `Both (v1, v2) -> Some (max v1 v2)
-        | `Left v1 -> Some v1
-        | `Right v2 -> Some v2)
-  | Sd sd -> dependency_of_list [ Sd.pack sd, 0 ]
-  | Sd_past (sd, n, _default) -> dependency_of_list [ Sd.pack sd, n ]
-  | Sd_history (sd, n) -> dependency_of_list [ Sd.pack sd, n ]
-  | State sd_set -> Map.of_key_set sd_set ~f:(fun _key -> 0)
-  | State_past (sd_set, i) -> Map.of_key_set sd_set ~f:(fun _key -> i)
+  | P t ->
+    (match t with
+    | Full_rsh () | Return _ -> Map.empty (module Sd.Packed)
+    | Map2 (a, b, _) ->
+      Map.merge (dependencies_p (P a)) (dependencies_p (P b)) ~f:(fun ~key:_k values ->
+          match values with
+          | `Both (v1, v2) -> Some (max v1 v2)
+          | `Left v1 -> Some v1
+          | `Right v2 -> Some v2)
+    | Sd sd -> dependency_of_list [ Sd.pack sd, 0 ]
+    | Sd_past (sd, n, _default) -> dependency_of_list [ Sd.pack sd, n ]
+    | Sd_history (sd, n) -> dependency_of_list [ Sd.pack sd, n ]
+    | State sd_set -> Map.of_key_set sd_set ~f:(fun _key -> 0)
+    | State_past (sd_set, i) -> Map.of_key_set sd_set ~f:(fun _key -> i))
 ;;
 
 let dependency_union d1 d2 = Map.merge_skewed d1 d2 ~combine:(fun ~key:_key -> Int.max)
+let dependencies t = dependencies_p (P t)
 
 (* -1 implies it doesn't exist period *)
 exception Sd_not_found of (string * int)
@@ -78,7 +83,8 @@ let rec execute : 'a. 'a t -> Rsh.t -> 'a =
        | _ -> raise (Sd_not_found (Sd.Packed.to_string (Sd.pack sd), -1)))
      | Unsafe ->
        (try Option.value_exn (Rsh.find_past rsh n sd) with
-       | _ -> raise (Sd_not_found (Sd.Packed.to_string (Sd.pack sd), n))))
+       | _ -> raise (Sd_not_found (Sd.Packed.to_string (Sd.pack sd), n)))
+     | Op -> Rsh.find_past rsh n sd)
    | Sd_history (sd, _size) -> fun i -> Rsh.find_past rsh i sd
    | State sd_set -> Rs.trim_to (Rsh.curr_state rsh) sd_set
    | State_past (sd_set, i) ->
