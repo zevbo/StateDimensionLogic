@@ -5,6 +5,6 @@ type safety =
   | Warnings
   | Unsafe
 
-val create : ?safety:safety -> Sd_node.t list -> t
+val create : ?safety:safety -> Sd_est.t list -> t
 val tick : t -> t
 val run : ?min_ms:float -> t -> ticks:int option -> unit

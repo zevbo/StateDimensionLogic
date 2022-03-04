@@ -6,7 +6,7 @@ type safety =
   | Unsafe
 
 type t =
-  { nodes : Sd_node.t list
+  { nodes : Sd_est.t list
   ; safety : safety
   ; rsh : Rsh.t
   }
@@ -21,11 +21,11 @@ let apply t =
   List.fold_left t.nodes ~init:t.rsh ~f:(fun state_history node ->
       let est_safety =
         match t.safety with
-        | Unsafe -> Sd_node.Unsafe
-        | Warnings -> Sd_node.Warnings
-        | Safe -> Sd_node.Safe
+        | Unsafe -> Sd_est.Unsafe
+        | Warnings -> Sd_est.Warnings
+        | Safe -> Sd_est.Safe
       in
-      let estimated_state = Sd_node.execute ~safety:est_safety node state_history in
+      let estimated_state = Sd_est.execute ~safety:est_safety node state_history in
       Robot_state_history.use state_history estimated_state)
 ;;
 
@@ -79,16 +79,13 @@ let check t =
   | status -> status
 ;;
 
-let sd_lengths (nodes : Sd_node.t list) =
+let sd_lengths (nodes : Sd_est.t list) =
   let max_indecies =
     List.fold
       nodes
       ~init:(Map.empty (module Sd.Packed))
       ~f:(fun sd_lengths node ->
-        Map.merge_skewed
-          sd_lengths
-          (Sd_lang.dependencies node.logic)
-          ~combine:(fun ~key:_key -> Int.max))
+        Sd_lang.dependency_union sd_lengths (Sd_lang.dependencies node.logic))
   in
   Map.map max_indecies ~f:(fun n -> n + 1)
 ;;
@@ -115,7 +112,7 @@ let create ?(safety = Safe) nodes =
         | Never_written -> "unestimated past require"
       in
       printf
-        "Sd_node.Applicable warning: Detected %s of sd %s\n"
+        "Sd_est.Applicable warning: Detected %s of sd %s\n"
         warning
         (Sd.Packed.to_string sd);
       model)

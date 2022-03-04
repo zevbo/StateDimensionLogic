@@ -47,6 +47,8 @@ let rec dependencies
   | State_past (sd_set, i) -> Map.of_key_set sd_set ~f:(fun _key -> i)
 ;;
 
+let dependency_union d1 d2 = Map.merge_skewed d1 d2 ~combine:(fun ~key:_key -> Int.max)
+
 (* -1 implies it doesn't exist period *)
 exception Sd_not_found of (string * int)
 

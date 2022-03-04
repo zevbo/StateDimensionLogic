@@ -12,7 +12,7 @@ exception Unestimatable_sd of string
 
 let create_logic
     start
-    (node : Sd_node.t)
+    (node : Sd_est.t)
     (judge : float Sd_lang.t)
     (sds_estimating : float Sd.t List.t)
     num_particles
@@ -77,7 +77,7 @@ let create_logic
           (* add required values for estimator *)
           let particle = Rsh.add_state particle inputs in
           let particle =
-            Rsh.use particle (Sd_node.execute ~safety:Sd_node.Safe node particle)
+            Rsh.use particle (Sd_est.execute ~safety:Sd_est.Safe node particle)
           in
           particle)
     in

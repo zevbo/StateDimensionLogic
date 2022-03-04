@@ -11,6 +11,12 @@ type 'a default =
 exception Sd_not_found of (string * int)
 
 val dependencies : 'a t -> int Map.M(Sd.Packed).t
+
+val dependency_union
+  :  int Map.M(Sd.Packed).t
+  -> int Map.M(Sd.Packed).t
+  -> int Map.M(Sd.Packed).t
+
 val execute : 'a t -> Rsh.t -> 'a
 
 module Let_syntax : sig
