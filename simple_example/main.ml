@@ -3,7 +3,7 @@ open! Sd_logic
 
 let model =
   Seq_model.create
-    [ Update_v.node; Update_x.node; Light_on.node; Print.node ]
+    [ Update_v.est; Update_x.est; Light_on.est; Print.est ]
     ~end_cond:End_cond.end_cond
 ;;
 

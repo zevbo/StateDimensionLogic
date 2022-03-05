@@ -6,7 +6,7 @@ type safety =
   { premature_sd_req : Safety_level.t
   ; overwritten_sd : Safety_level.t
   ; never_written_sd_req : Safety_level.t
-  ; node_safety : Sd_node.safety
+  ; node_safety : Sd_est.safety
   ; info : safety_info
   }
 
@@ -15,7 +15,7 @@ let create_safety
     ?(premature_sd_req = default)
     ?(overwritten_sd = default)
     ?(never_written_sd_req = default)
-    ?(node_safety = Sd_node.create_safety ~default ())
+    ?(node_safety = Sd_est.create_safety ~default ())
     ()
   =
   let info =
@@ -33,7 +33,7 @@ let create_safety
 ;;
 
 type t =
-  { nodes : Sd_node.t list
+  { nodes : Sd_est.t list
   ; safety : safety
   ; rsh : Rsh.t
   ; end_cond : bool Sd_lang.t option
@@ -49,7 +49,7 @@ let key_dependencies logic =
 let apply t =
   List.fold_left t.nodes ~init:t.rsh ~f:(fun state_history node ->
       let estimated_state =
-        Sd_node.execute ~safety:t.safety.node_safety node state_history
+        Sd_est.execute ~safety:t.safety.node_safety node state_history
       in
       Robot_state_history.use state_history estimated_state)
 ;;
@@ -109,7 +109,7 @@ let check t =
   | status -> status
 ;;
 
-let sd_lengths (nodes : Sd_node.t list) =
+let sd_lengths (nodes : Sd_est.t list) =
   let max_indecies =
     List.fold
       nodes
@@ -131,7 +131,7 @@ let create ?(safety = create_safety ()) ?(end_cond : bool Sd_lang.t Option.t) no
     | Safety_level.Unsafe -> ()
     | Safety_level.Warnings ->
       printf
-        "Sd_node.Applicable warning: Detected %s of sd %s\n"
+        "Sd_est.Applicable warning: Detected %s of sd %s\n"
         warning
         (Sd.Packed.to_string sd)
     | Safety_level.Safe -> raise exc

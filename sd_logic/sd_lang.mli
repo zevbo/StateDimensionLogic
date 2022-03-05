@@ -9,12 +9,18 @@ type ('a, _) default =
   | Op : ('a, 'a Option.t) default
 (* in case of too few states, fail *)
 
-exception Sd_not_found of (string * int)
+exception Sd_not_found of (Sd.Packed.t * int) [@@deriving sexp]
 
 type packed = P : 'a t -> packed
 
 val dependencies_p : packed -> int Map.M(Sd.Packed).t
 val dependencies : 'a t -> int Map.M(Sd.Packed).t
+
+val dependency_union
+  :  int Map.M(Sd.Packed).t
+  -> int Map.M(Sd.Packed).t
+  -> int Map.M(Sd.Packed).t
+
 val execute : 'a t -> Rsh.t -> 'a
 
 module Let_syntax : sig

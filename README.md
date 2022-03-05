@@ -175,7 +175,10 @@ To get full safety, it is recommended to try and stick to the
 `Safe_last` and `V` cases.
 
 If you need multiple state dimensions, you can use the `and` keyword
-as seen in update_x.ml.
+as seen in update_x.ml. If you don't want any data about the robot, make the first let statement:
+```ocaml
+let () = return () in
+```
 
 The middle section, the logic, is the simplest: you simply write code
 just the way you normally would.
@@ -681,6 +684,11 @@ let (simple_sd_lang : bool Sd_lang.t) =
     print_endline (Bool.to_string c);
     b]
 ;;
+```
+
+Also, if you don't want any data about the robot, make the first let statement:
+```ocaml
+let () = return () in
 ```
 
 There's one final, and critical, feature in this module:

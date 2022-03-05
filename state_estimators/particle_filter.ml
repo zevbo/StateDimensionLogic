@@ -12,7 +12,7 @@ exception Unestimatable_sd of Sd.Packed.t [@@deriving sexp]
 
 let create_logic
     start
-    (node : Sd_node.t)
+    (node : Sd_est.t)
     (judge : float Sd_lang.t)
     (sds_estimating : float Sd.t List.t)
     num_particles
@@ -79,7 +79,7 @@ let create_logic
           let particle =
             Rsh.use
               particle
-              (Sd_node.execute ~safety:(Sd_node.create_safety ()) node particle)
+              (Sd_est.execute ~safety:(Sd_est.create_safety ()) node particle)
           in
           particle)
     in

@@ -50,29 +50,29 @@ let missing_set_b_logic =
 ;;
 
 let set_a_node =
-  Sd_node.create set_a_logic (Set.of_list (module Sd.Packed) [ Sd.pack Sds.a ])
+  Sd_est.create set_a_logic (Set.of_list (module Sd.Packed) [ Sd.pack Sds.a ])
 ;;
 
 let bad_set_a =
-  Sd_node.create bad_set_a_logic (Set.of_list (module Sd.Packed) [ Sd.pack Sds.a ])
+  Sd_est.create bad_set_a_logic (Set.of_list (module Sd.Packed) [ Sd.pack Sds.a ])
 ;;
 
 let set_b_node =
-  Sd_node.create set_b_logic (Set.of_list (module Sd.Packed) [ Sd.pack Sds.b ])
+  Sd_est.create set_b_logic (Set.of_list (module Sd.Packed) [ Sd.pack Sds.b ])
 ;;
 
 let set_b_node2 =
-  Sd_node.create set_b_logic (Set.of_list (module Sd.Packed) [ Sd.pack Sds.b ])
+  Sd_est.create set_b_logic (Set.of_list (module Sd.Packed) [ Sd.pack Sds.b ])
 ;;
 
-let bad_node = Sd_node.create bad_logic (Set.of_list (module Sd.Packed) [])
+let bad_node = Sd_est.create bad_logic (Set.of_list (module Sd.Packed) [])
 
 let extra_set_b_node =
-  Sd_node.create extra_set_b_logic (Set.of_list (module Sd.Packed) [ Sd.pack Sds.b ])
+  Sd_est.create extra_set_b_logic (Set.of_list (module Sd.Packed) [ Sd.pack Sds.b ])
 ;;
 
 let missing_set_b_node =
-  Sd_node.create missing_set_b_logic (Set.of_list (module Sd.Packed) [ Sd.pack Sds.b ])
+  Sd_est.create missing_set_b_logic (Set.of_list (module Sd.Packed) [ Sd.pack Sds.b ])
 ;;
 
 let end_cond =
@@ -129,13 +129,13 @@ let%expect_test "overwriting_est" =
 ;;
 
 let%expect_test "extra_est" =
-  let node_safety = Sd_node.create_safety ~extra_sd:Unsafe () in
+  let node_safety = Sd_est.create_safety ~extra_sd:Unsafe () in
   check_error [ extra_set_b_node ] (Seq_model.create_safety ~node_safety ()) true;
-  [%expect {| (sd_logic/sd_node.ml.Extra_sd a) |}]
+  [%expect {| (sd_logic/sd_est.ml.Extra_sd a) |}]
 ;;
 
 let%expect_test "missing_est" =
-  let node_safety = Sd_node.create_safety ~missing_sd:Unsafe () in
+  let node_safety = Sd_est.create_safety ~missing_sd:Unsafe () in
   check_error [ missing_set_b_node ] (Seq_model.create_safety ~node_safety ()) true;
-  [%expect {| (sd_logic/sd_node.ml.Missing_sd b) |}]
+  [%expect {| (sd_logic/sd_est.ml.Missing_sd b) |}]
 ;;

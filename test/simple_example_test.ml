@@ -5,7 +5,7 @@ let%test "missing_sd" =
   try
     ignore
       (Seq_model.create
-         [ Update_x.node; Update_v.node; Light_on.node; Print.node ]
+         [ Update_x.est; Update_v.est; Light_on.est; Print.est ]
          ~end_cond:End_cond.end_cond
         : Seq_model.t);
     false

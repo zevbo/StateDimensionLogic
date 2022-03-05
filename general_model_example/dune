@@ -1,0 +1,5 @@
+(library
+ (name general_model_example)
+ (libraries core sd_logic state_estimators simple_example)
+ (preprocess
+  (pps ppx_jane)))

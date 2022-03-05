@@ -6,12 +6,12 @@ val create_safety
   -> ?premature_sd_req:Safety_level.t
   -> ?overwritten_sd:Safety_level.t
   -> ?never_written_sd_req:Safety_level.t
-  -> ?node_safety:Sd_node.safety
+  -> ?node_safety:Sd_est.safety
   -> unit
   -> safety
 
 (** safety defaults to maximum safety *)
-val create : ?safety:safety -> ?end_cond:bool Sd_lang.t -> Sd_node.t list -> t
+val create : ?safety:safety -> ?end_cond:bool Sd_lang.t -> Sd_est.t list -> t
 
 val tick : t -> t
 

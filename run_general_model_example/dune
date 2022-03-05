@@ -1,0 +1,5 @@
+(executable
+ (name run_general_model_example)
+ (libraries general_model_example)
+ (preprocess
+  (pps ppx_jane)))

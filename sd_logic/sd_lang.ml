@@ -51,10 +51,11 @@ let rec dependencies_p : packed -> (Sd.Packed.t, int, Sd.Packed.comparator_witne
     | State_past (sd_set, i) -> Map.of_key_set sd_set ~f:(fun _key -> i))
 ;;
 
+let dependency_union d1 d2 = Map.merge_skewed d1 d2 ~combine:(fun ~key:_key -> Int.max)
 let dependencies t = dependencies_p (P t)
 
 (* -1 implies it doesn't exist period *)
-exception Sd_not_found of (string * int)
+exception Sd_not_found of (Sd.Packed.t * int) [@@deriving sexp]
 
 let rec execute : 'a. 'a t -> Rsh.t -> 'a =
   fun (type a) (t : a t) (rsh : Robot_state_history.t) ->
@@ -63,7 +64,7 @@ let rec execute : 'a. 'a t -> Rsh.t -> 'a =
    | Map2 (a, b, f) -> f (execute a rsh) (execute b rsh)
    | Sd sd ->
      (try Rsh.find_exn rsh sd with
-     | _ -> raise (Sd_not_found (Sd.Packed.to_string (Sd.pack sd), 0)))
+     | _ -> raise (Sd_not_found (Sd.pack sd, 0)))
    | Sd_past (sd, n, default) ->
      (match default with
      (* probably wanna change this so it only defaults if we're past the length *)
@@ -72,17 +73,17 @@ let rec execute : 'a. 'a t -> Rsh.t -> 'a =
        then default
        else (
          try Rsh.find_past_exn rsh n sd with
-         | _ -> raise (Sd_not_found (Sd.Packed.to_string (Sd.pack sd), n)))
+         | _ -> raise (Sd_not_found (Sd.pack sd, n)))
      | Safe_last default ->
        if n > 0 && Rsh.length rsh <= 1
        then default
        else execute (Sd_past (sd, n, Last)) rsh
      | Last ->
        (try Option.value_exn (Rsh.find_past_last_def rsh n sd) with
-       | _ -> raise (Sd_not_found (Sd.Packed.to_string (Sd.pack sd), -1)))
+       | _ -> raise (Sd_not_found (Sd.pack sd, -1)))
      | Unsafe ->
        (try Option.value_exn (Rsh.find_past rsh n sd) with
-       | _ -> raise (Sd_not_found (Sd.Packed.to_string (Sd.pack sd), n)))
+       | _ -> raise (Sd_not_found (Sd.pack sd, n)))
      | Op -> Rsh.find_past rsh n sd)
    | Sd_history (sd, _size) -> fun i -> Rsh.find_past rsh i sd
    | State sd_set -> Rs.trim_to (Rsh.curr_state rsh) sd_set

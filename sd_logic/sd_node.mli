@@ -1,22 +1,28 @@
-open Core_kernel
+open! Core
 
-type t =
-  { logic : Robot_state.t Sd_lang.t
-  ; sds_estimating : Set.M(Sd.Packed).t
+type id = int
+
+type _ info =
+  | Exit : unit info
+  | Tick : pt info
+  | Fork : (pt * pt) info (* first t is next, second is forked *)
+  | Est : Sd_est.t -> pt info
+  | Desc : bool Sd_lang.t -> (pt * pt) info
+
+and 'a t =
+  { info : 'a info [@hash.ignore] [@compare.ignore]
+  ; id : id
   }
 
-val create : Robot_state.t Sd_lang.t -> Set.M(Sd.Packed).t -> t
+and pt = P : _ t -> pt
 
-type safety
+type conn = Conn : ('a t * 'a) -> conn
 
-exception Missing_sd of Sd.Packed.t [@@deriving sexp]
-exception Extra_sd of Sd.Packed.t [@@deriving sexp]
-
-val create_safety
-  :  ?default:Safety_level.t
-  -> ?missing_sd:Safety_level.t
-  -> ?extra_sd:Safety_level.t
-  -> unit
-  -> safety
-
-val execute : safety:safety -> t -> Rsh.t -> Rs.t
+val create : 'a info -> 'a t
+val exit : unit t
+val tick : unit -> pt t
+val fork : unit -> (pt * pt) t
+val est : Sd_est.t -> pt t
+val desc : bool Sd_lang.t -> (pt * pt) t
+val compare : 'a t -> 'b t -> int
+val hash : 'a t -> int

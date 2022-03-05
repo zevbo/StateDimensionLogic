@@ -9,4 +9,4 @@ let logic =
 ;;
 
 let sds_estimating = Set.of_list (module Sd.Packed) [ Sd.pack Sds.x ]
-let node = Sd_node.create logic sds_estimating
+let est = Sd_est.create logic sds_estimating
