@@ -104,6 +104,44 @@ let rec current_checks
         Map.merge (recur n1) (recur n2) ~f:merge_timer_data)
 ;;
 
+exception Possible_exponential_threading of int
+
+let exponential_threads_check cnodes start =
+  let rec next_ticks ~explored on =
+    match to_cnode cnodes on with
+    | P { node; next } ->
+      if Set.mem explored node.id
+      then (
+        match node.info with
+        | Tick -> Set.add (Set.empty (module Int)) node.id
+        | _ -> Set.empty (module Int))
+      else (
+        let explored = Set.add explored node.id in
+        let recur = next_ticks ~explored in
+        match node.info, next with
+        | Exit, () -> Set.empty (module Int)
+        | Tick, next_node -> Set.add (recur next_node) node.id
+        | Fork, (n1, n2) ->
+          let n1_set = recur n1 in
+          let n2_set = recur n2 in
+          let comb = Set.union n1_set n2_set in
+          if not (Set.length comb = Set.length n1_set + Set.length n2_set)
+          then (
+            Set.iter n1_set ~f:(fun id ->
+                if Set.mem n2_set id then raise (Possible_exponential_threading id));
+            assert false);
+          comb
+        | Est _, node -> recur node
+        | Desc _, (n1, n2) -> Set.union (recur n1) (recur n2))
+  in
+  ignore (next_ticks ~explored:(Set.empty (module Int)) start : Set.M(Int).t)
+;;
+
+let safety_checks cnodes start =
+  let _timer_info_or_something = current_checks cnodes start in
+  exponential_threads_check cnodes start
+;;
+
 let rec dependencies cnodes ?(explored = Set.empty (module Int)) (on : Sd_node.child_t) =
   match to_cnode cnodes on with
   | P { node; next } ->
@@ -168,7 +206,7 @@ let create (connections : Sd_node.conn list) (start : 'a Sd_node.t) =
     | `Ok cnodes -> cnodes
   in
   assert_all_nodes_known connections cnodes;
-  let _timer = current_checks cnodes (C start) in
+  safety_checks cnodes (C start);
   let sd_lengths = Map.map (dependencies cnodes (C start)) ~f:(fun n -> n + 1) in
   let t =
     { rsh = ref (Rsh.create ~sd_lengths ())
@@ -257,3 +295,5 @@ let rec run t ~safety ~num_ticks =
   | 0, _ | _, [] -> t
   | _ -> run (run_tick t ~safety) ~safety ~num_ticks:(num_ticks - 1)
 ;;
+
+let rsh t = !(t.rsh)

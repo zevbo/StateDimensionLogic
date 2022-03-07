@@ -33,6 +33,7 @@ end)
 
 let dependency_of_list l = Map.of_alist_reduce (module Sd.Packed) l ~f:max
 
+(* should have sense of required and optional for current *)
 let rec dependencies_p : packed -> (Sd.Packed.t, int, Sd.Packed.comparator_witness) Map.t
   = function
   | P t ->
