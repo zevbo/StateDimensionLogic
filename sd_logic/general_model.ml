@@ -26,15 +26,123 @@ type t =
 
 and ctxt =
   { t : t
-  ; node : Sd_node.pt
+  ; node : Sd_node.child_t
   ; children : Thread.t list
   }
 
 (* zTODO: add ability to increase lengths *)
 
-let to_cnode cnodes (P node : Sd_node.pt) : Cnode.t = Map.find_exn cnodes node.id
+let to_cnode cnodes (C node : Sd_node.child_t) : Cnode.t = Map.find_exn cnodes node.id
 
-let rec dependencies cnodes ?(explored = Set.empty (module Int)) (on : Sd_node.pt) =
+exception Unsafe_curr_requirement of Sd.Packed.t [@@deriving sexp]
+
+(* when inconsitent estimates are introduced, will need a new error *)
+exception Possible_overwrite of Sd.Packed.t [@@deriving sexp]
+
+let rec current_checks
+    ?(explored = Set.empty (module Int))
+    ?((* passed down *)
+      current_estimated = Set.empty (module Sd.Packed))
+    ?((* passed down *)
+      timer_estimations = Map.empty (module Int))
+    (* passed back *)
+      cnodes
+    on
+  =
+  let verify_dep lang =
+    let dep = Sd_lang.dependencies lang in
+    Map.iteri dep ~f:(fun ~key ~data ->
+        if data = 0 && not (Set.mem current_estimated key)
+        then raise (Unsafe_curr_requirement key))
+  in
+  let merge_timer_data ~key:_key x =
+    match x with
+    | `Both (set1, set2) -> Some (Set.union set1 set2)
+    | `Left v | `Right v -> Some v
+  in
+  match to_cnode cnodes on with
+  | P { node; next } ->
+    if Set.mem explored node.id
+    then (
+      match node.info with
+      | Tick ->
+        let curr_val = Map.find timer_estimations node.id in
+        let new_val =
+          Set.union
+            current_estimated
+            (Option.value curr_val ~default:(Set.empty (module Sd.Packed)))
+        in
+        Map.set timer_estimations ~key:node.id ~data:new_val
+      | _ -> timer_estimations)
+    else (
+      let explored =
+        Set.add
+          explored
+          (match on with
+          | C { id; _ } -> id)
+      in
+      let recur
+          ?(explored = explored)
+          ?(current_estimated = current_estimated)
+          ?(timer_estimations = timer_estimations)
+          on
+        =
+        current_checks ~explored ~current_estimated ~timer_estimations cnodes on
+      in
+      match node.info, next with
+      | Exit, () -> timer_estimations
+      | Tick, node -> recur node
+      | Fork, (n1, n2) -> Map.merge (recur n1) (recur n2) ~f:merge_timer_data
+      | Est est, n ->
+        verify_dep est.logic;
+        Set.iter est.sds_estimating ~f:(fun sd ->
+            if Set.mem current_estimated sd then raise (Possible_overwrite sd));
+        let current_estimated = Set.union current_estimated est.sds_estimating in
+        recur ~current_estimated n
+      | Desc f, (n1, n2) ->
+        verify_dep f;
+        Map.merge (recur n1) (recur n2) ~f:merge_timer_data)
+;;
+
+exception Possible_exponential_threading of int
+
+let exponential_threads_check cnodes start =
+  let rec next_ticks ~explored on =
+    match to_cnode cnodes on with
+    | P { node; next } ->
+      if Set.mem explored node.id
+      then (
+        match node.info with
+        | Tick -> Set.add (Set.empty (module Int)) node.id
+        | _ -> Set.empty (module Int))
+      else (
+        let explored = Set.add explored node.id in
+        let recur = next_ticks ~explored in
+        match node.info, next with
+        | Exit, () -> Set.empty (module Int)
+        | Tick, next_node -> Set.add (recur next_node) node.id
+        | Fork, (n1, n2) ->
+          let n1_set = recur n1 in
+          let n2_set = recur n2 in
+          let comb = Set.union n1_set n2_set in
+          if not (Set.length comb = Set.length n1_set + Set.length n2_set)
+          then (
+            Set.iter n1_set ~f:(fun id ->
+                if Set.mem n2_set id then raise (Possible_exponential_threading id));
+            assert false);
+          comb
+        | Est _, node -> recur node
+        | Desc _, (n1, n2) -> Set.union (recur n1) (recur n2))
+  in
+  ignore (next_ticks ~explored:(Set.empty (module Int)) start : Set.M(Int).t)
+;;
+
+let safety_checks cnodes start =
+  let _timer_info_or_something = current_checks cnodes start in
+  exponential_threads_check cnodes start
+;;
+
+let rec dependencies cnodes ?(explored = Set.empty (module Int)) (on : Sd_node.child_t) =
   match to_cnode cnodes on with
   | P { node; next } ->
     if Set.mem explored node.id
@@ -55,7 +163,7 @@ let rec dependencies cnodes ?(explored = Set.empty (module Int)) (on : Sd_node.p
 ;;
 
 let assert_all_nodes_known (connections : Sd_node.conn list) cnodes =
-  let assert_in (from : _ Sd_node.t) (Sd_node.P node) =
+  let assert_in (from : _ Sd_node.t) (Sd_node.C node) =
     if not (Map.mem cnodes node.id)
     then
       raise
@@ -68,7 +176,7 @@ let assert_all_nodes_known (connections : Sd_node.conn list) cnodes =
               node.id))
   in
   List.iter connections ~f:(fun (Conn (node, next)) ->
-      let (nodes : Sd_node.pt list) =
+      let (nodes : Sd_node.child_t list) =
         match node.info, next with
         | Exit, () -> []
         | Tick, node -> [ node ]
@@ -98,7 +206,8 @@ let create (connections : Sd_node.conn list) (start : 'a Sd_node.t) =
     | `Ok cnodes -> cnodes
   in
   assert_all_nodes_known connections cnodes;
-  let sd_lengths = Map.map (dependencies cnodes (P start)) ~f:(fun n -> n + 1) in
+  safety_checks cnodes (C start);
+  let sd_lengths = Map.map (dependencies cnodes (C start)) ~f:(fun n -> n + 1) in
   let t =
     { rsh = ref (Rsh.create ~sd_lengths ())
     ; continuations = ref []
@@ -107,16 +216,16 @@ let create (connections : Sd_node.conn list) (start : 'a Sd_node.t) =
     ; cnodes
     }
   in
-  let node_ctxt = { t; node = P start; children = [] } in
+  let node_ctxt = { t; node = C start; children = [] } in
   t.continuations := [ node_ctxt ];
   t
 ;;
 
 type step_result =
-  | On of Sd_node.pt
-  | Tick_block of Sd_node.pt
+  | On of Sd_node.child_t
+  | Tick_block of Sd_node.child_t
   | Exited
-  | Forked of Sd_node.pt * Sd_node.pt
+  | Forked of Sd_node.child_t * Sd_node.child_t
 
 let thread_exit ctxt =
   List.iter ctxt.children ~f:Thread.join;
@@ -186,3 +295,5 @@ let rec run t ~safety ~num_ticks =
   | 0, _ | _, [] -> t
   | _ -> run (run_tick t ~safety) ~safety ~num_ticks:(num_ticks - 1)
 ;;
+
+let rsh t = !(t.rsh)
