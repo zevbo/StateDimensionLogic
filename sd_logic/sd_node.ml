@@ -7,17 +7,17 @@ let get_id () = Atomic.fetch_and_add global_id 1
 
 type _ info =
   | Exit : unit info
-  | Tick : pt info
-  | Fork : (pt * pt) info (* first t is next, second is forked *)
-  | Est : Sd_est.t -> pt info
-  | Desc : bool Sd_lang.t -> (pt * pt) info
+  | Tick : child_t info
+  | Fork : (child_t * child_t) info (* first t is next, second is forked *)
+  | Est : Sd_est.t -> child_t info
+  | Desc : bool Sd_lang.t -> (child_t * child_t) info
 
 and 'a t =
   { info : 'a info [@hash.ignore] [@compare.ignore]
   ; id : id
   }
 
-and pt = P : _ t -> pt
+and child_t = C : _ t -> child_t
 
 type conn = Conn : ('a t * 'a) -> conn
 
