@@ -37,6 +37,23 @@ module Packed : sig
   val comparator : (t, comparator_witness) Comparator.t
 end
 
+(* depedent SD *)
+module Dep : sig
+  module Id : sig
+    type t = Rs.t list Sd.t
+
+    val create : string -> t
+  end
+
+  type inst_id = int
+  type 'a t
+  type 'a inst
+
+  val create : Id.t -> string -> 'a -> Sexp.t
+  val inst : 'a t -> int -> 'a inst
+  val inst_id : 'a inst -> inst_id
+end
+
 val pack : 'a t -> Packed.t
 
 type set = Set.M(Packed).t

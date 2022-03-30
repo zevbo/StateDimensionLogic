@@ -56,6 +56,31 @@ module Packed = struct
   include Comparator.Make (T)
 end
 
+module Dep = struct
+  module Id = struct
+    type t = Rs.t list Sd.t
+
+    let create name : t = Sd.create name (List.sexp_of_t Rs.sexp_of_t)
+  end
+
+  type inst_id = int
+
+  (* not sure how I feel about exposing all this stuff to the user *)
+  type 'a t =
+    { sd : 'a Sd.t
+    ; id : Id.t
+    }
+
+  type 'a inst =
+    { t : 'a t
+    ; inst_id : inst_id
+    }
+
+  let create id name sexp_of = { sd = Sd.create name sexp_of; id }
+  let inst t inst_id = { t; inst_id }
+  let inst_id inst = inst.inst_id
+end
+
 let pack = Packed.create
 
 type set = Set.M(Packed).t
