@@ -39,72 +39,65 @@ exception Unsafe_curr_requirement of Sd.Packed.t [@@deriving sexp]
 (* when inconsitent estimates are introduced, will need a new error *)
 exception Possible_overwrite of Sd.Packed.t [@@deriving sexp]
 
-let rec current_checks
-    ?(explored = Set.empty (module Int))
-    ?((* passed down *)
-      current_estimated = Set.empty (module Sd.Packed))
-    ?((* passed down *)
-      timer_estimations = Map.empty (module Int))
-    (* passed back *)
-      cnodes
-    on
-  =
-  let verify_dep lang =
-    let dep = Sd_lang.dependencies lang in
-    Map.iteri dep ~f:(fun ~key ~data ->
-        if data = 0 && not (Set.mem current_estimated key)
-        then raise (Unsafe_curr_requirement key))
-  in
-  let merge_timer_data ~key:_key x =
-    match x with
-    | `Both (set1, set2) -> Some (Set.union set1 set2)
-    | `Left v | `Right v -> Some v
-  in
-  match to_cnode cnodes on with
-  | P { node; next } ->
-    if Set.mem explored node.id
-    then (
-      match node.info with
-      | Tick ->
-        let curr_val = Map.find timer_estimations node.id in
-        let new_val =
-          Set.union
-            current_estimated
-            (Option.value curr_val ~default:(Set.empty (module Sd.Packed)))
-        in
-        Map.set timer_estimations ~key:node.id ~data:new_val
-      | _ -> timer_estimations)
-    else (
-      let explored =
-        Set.add
+let current_checks cnodes start =
+  let explored = Hash_set.create (module Int) in
+  let rec explorer on current_estimated =
+    (* verifies dependencies on current tick state dimensions *)
+    let verify_dep lang =
+      let dep = Sd_lang.dependencies lang in
+      Map.iteri dep ~f:(fun ~key ~data ->
+          if data = 0 && not (Set.mem current_estimated key)
+          then raise (Unsafe_curr_requirement key))
+    in
+    match to_cnode cnodes on with
+    | P { node; next } ->
+      if Hash_set.mem explored node.id
+      then ()
+      else (
+        Hash_set.add
           explored
           (match on with
-          | C { id; _ } -> id)
-      in
-      let recur
-          ?(explored = explored)
-          ?(current_estimated = current_estimated)
-          ?(timer_estimations = timer_estimations)
-          on
-        =
-        current_checks ~explored ~current_estimated ~timer_estimations cnodes on
-      in
-      match node.info, next with
-      | Exit, () -> timer_estimations
-      | Tick, node -> recur node
-      | Fork, (n1, n2) -> Map.merge (recur n1) (recur n2) ~f:merge_timer_data
-      | Est est, n ->
-        verify_dep est.logic;
-        Set.iter est.sds_estimating ~f:(fun sd ->
-            if Set.mem current_estimated sd then raise (Possible_overwrite sd));
-        let current_estimated = Set.union current_estimated est.sds_estimating in
-        recur ~current_estimated n
-      | Desc f, (n1, n2) ->
-        verify_dep f;
-        Map.merge (recur n1) (recur n2) ~f:merge_timer_data)
+          | C { id; _ } -> id);
+        match node.info, next with
+        | Exit, () -> ()
+        | Tick, node -> explorer node (Set.empty (module Sd.Packed))
+        | Fork, (n1, n2) ->
+          explorer n1 current_estimated;
+          explorer n2 current_estimated
+        | Est est, n ->
+          verify_dep est.logic;
+          Set.iter est.sds_estimating ~f:(fun sd ->
+              if Set.mem current_estimated sd then raise (Possible_overwrite sd));
+          let current_estimated = Set.union current_estimated est.sds_estimating in
+          explorer n current_estimated
+        | Desc f, (n1, n2) ->
+          verify_dep f;
+          explorer n1 current_estimated;
+          explorer n2 current_estimated)
+  in
+  explorer start (Set.empty (module Sd.Packed))
 ;;
 
-exception Possible_exponential_threading of int
+exception Possible_exponential_threading of Sd_node.child_t
+
+(* this doesn't work I'm pretty sure *)
+let _all_ticks cnodes start =
+  let explored = Hash_set.create (module Int) in
+  let rec explore on =
+    match to_cnode cnodes on with
+    | P { node; next } ->
+      if Hash_set.mem explored node.id
+      then Set.empty (module Int)
+      else (
+        Hash_set.add explored node.id;
+        match node.info, next with
+        | Exit, () -> Set.empty (module Int)
+        | Tick, next_node -> Set.add (explore next_node) node.id
+        | Fork, (n1, n2) | Desc _, (n1, n2) -> Set.union (explore n1) (explore n2)
+        | Est _est, n -> explore n)
+  in
+  explore start
+;;
 
 let exponential_threads_check cnodes start =
   let rec next_ticks ~explored on =
@@ -128,7 +121,7 @@ let exponential_threads_check cnodes start =
           if not (Set.length comb = Set.length n1_set + Set.length n2_set)
           then (
             Set.iter n1_set ~f:(fun id ->
-                if Set.mem n2_set id then raise (Possible_exponential_threading id));
+                if Set.mem n2_set id then raise (Possible_exponential_threading (C node)));
             assert false);
           comb
         | Est _, node -> recur node

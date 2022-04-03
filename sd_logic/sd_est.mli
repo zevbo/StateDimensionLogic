@@ -5,7 +5,8 @@ type t =
   ; sds_estimating : Set.M(Sd.Packed).t
   }
 
-val create : Robot_state.t Sd_lang.t -> Set.M(Sd.Packed).t -> t
+val create_set : Robot_state.t Sd_lang.t -> Set.M(Sd.Packed).t -> t
+val create : Robot_state.t Sd_lang.t -> Sd.Packed.t list -> t
 
 type safety
 

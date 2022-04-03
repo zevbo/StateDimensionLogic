@@ -95,20 +95,12 @@ let rec execute : 'a. 'a t -> Rsh.t -> 'a =
    | Full_rsh () -> rsh
 ;;
 
-module Let_syntax = struct
-  module Let_syntax = struct
-    let return = return
-    let map = map
-    let both = both
-
-    module Open_on_rhs = struct
-      let return = return
-      let sd x = Sd x
-      let sd_past x n def = Sd_past (x, n, def)
-      let sd_history x n = Sd_history (x, n)
-      let state set = State set
-      let state_past set n = State_past (set, n)
-      let full_rsh () = Full_rsh ()
-    end
-  end
-end
+let ( let+ ) a f = map a ~f
+let ( and+ ) = both
+let return = return
+let sd x = Sd x
+let sd_past x n def = Sd_past (x, n, def)
+let sd_history x n = Sd_history (x, n)
+let state set = State set
+let state_past set n = State_past (set, n)
+let full_rsh () = Full_rsh ()

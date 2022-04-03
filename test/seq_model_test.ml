@@ -1,5 +1,6 @@
 open Sd_logic
 open Core
+open Sd_lang
 
 module Sds = struct
   let a = Sd.create "a" Float.sexp_of_t
@@ -8,77 +9,51 @@ module Sds = struct
 end
 
 let set_a_logic =
-  [%map_open.Sd_lang
-    let () = return () in
-    Rs.set Rs.empty Sds.a 0.0]
+  let+ () = return () in
+  Rs.set Rs.empty Sds.a 0.0
 ;;
 
 let bad_set_a_logic =
-  [%map_open.Sd_lang
-    let _a = sd Sds.a in
-    Rs.set Rs.empty Sds.a 0.0]
+  let+ _a = sd Sds.a in
+  Rs.set Rs.empty Sds.a 0.0
 ;;
 
 let set_b_logic =
-  [%map_open.Sd_lang
-    let a = sd_past Sds.a 0 (V 0.0) in
-    Rs.set Rs.empty Sds.b (a +. 1.0)]
+  let+ a = sd_past Sds.a 0 (V 0.0) in
+  Rs.set Rs.empty Sds.b (a +. 1.0)
 ;;
 
 let set_b_logic2 =
-  [%map_open.Sd_lang
-    let a = sd Sds.a in
-    Rs.set Rs.empty Sds.b (a +. 1.0)]
+  let+ a = sd Sds.a in
+  Rs.set Rs.empty Sds.b (a +. 1.0)
 ;;
 
 let bad_logic =
-  [%map_open.Sd_lang
-    let _bad = sd Sds.bad in
-    Rs.empty]
+  let+ _bad = sd Sds.bad in
+  Rs.empty
 ;;
 
 let extra_set_b_logic =
-  [%map_open.Sd_lang
-    let () = return () in
-    Rs.set (Rs.set Rs.empty Sds.b 0.0) Sds.a 1.0]
+  let+ () = return () in
+  Rs.set (Rs.set Rs.empty Sds.b 0.0) Sds.a 1.0
 ;;
 
 let missing_set_b_logic =
-  [%map_open.Sd_lang
-    let () = return () in
-    Rs.empty]
+  let+ () = return () in
+  Rs.empty
 ;;
 
-let set_a_node =
-  Sd_est.create set_a_logic (Set.of_list (module Sd.Packed) [ Sd.pack Sds.a ])
-;;
-
-let bad_set_a =
-  Sd_est.create bad_set_a_logic (Set.of_list (module Sd.Packed) [ Sd.pack Sds.a ])
-;;
-
-let set_b_node =
-  Sd_est.create set_b_logic (Set.of_list (module Sd.Packed) [ Sd.pack Sds.b ])
-;;
-
-let set_b_node2 =
-  Sd_est.create set_b_logic (Set.of_list (module Sd.Packed) [ Sd.pack Sds.b ])
-;;
-
-let bad_node = Sd_est.create bad_logic (Set.of_list (module Sd.Packed) [])
-
-let extra_set_b_node =
-  Sd_est.create extra_set_b_logic (Set.of_list (module Sd.Packed) [ Sd.pack Sds.b ])
-;;
-
-let missing_set_b_node =
-  Sd_est.create missing_set_b_logic (Set.of_list (module Sd.Packed) [ Sd.pack Sds.b ])
-;;
+let set_a_node = Sd_est.create set_a_logic [ Sd.pack Sds.a ]
+let bad_set_a = Sd_est.create bad_set_a_logic [ Sd.pack Sds.a ]
+let set_b_node = Sd_est.create set_b_logic [ Sd.pack Sds.b ]
+let set_b_node2 = Sd_est.create set_b_logic [ Sd.pack Sds.b ]
+let bad_node = Sd_est.create bad_logic []
+let extra_set_b_node = Sd_est.create extra_set_b_logic [ Sd.pack Sds.b ]
+let missing_set_b_node = Sd_est.create missing_set_b_logic [ Sd.pack Sds.b ]
 
 let end_cond =
-  [%map_open.Sd_lang
-    let b = sd Sds.b in
-    Float.(b > 1.0)]
+  let+ b = sd Sds.b in
+  Float.(b > 1.0)
 ;;
 
 let check_error ?end_cond nodes pass_safety to_run =
