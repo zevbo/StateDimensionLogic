@@ -40,5 +40,5 @@ let%test "possible_overwrte" =
     false
   with
   | Gm.Possible_overwrite sd -> Sd.Packed.equal sd (Sd.pack Commons.a)
-  | _ -> false
+  | e -> raise e
 ;;
