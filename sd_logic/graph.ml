@@ -60,7 +60,7 @@ module Graph (N : Node) = struct
 
   let scc_list t =
     let first_sort = top_sort t in
-    let second_sort = top_sort_ord (rev t) (List.rev first_sort) Split in
+    let second_sort = top_sort_ord (rev t) first_sort Split in
     List.map second_sort ~f:(Set.of_list (module N))
   ;;
 end

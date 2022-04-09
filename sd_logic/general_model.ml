@@ -42,7 +42,7 @@ exception Possible_overwrite of Sd.Packed.t [@@deriving sexp]
 
 module Graph = Graph.Graph (Int)
 
-let to_graph cnodes start =
+let to_graph cnodes start ~use_ticks =
   let rec explorer on g =
     let e = explorer in
     match to_cnode cnodes on with
@@ -52,7 +52,8 @@ let to_graph cnodes start =
       else (
         match node.info, next with
         | Exit, () -> g
-        | Tick, C { id; _ } -> e next (Graph.add_edge g node.id id)
+        | Tick, C { id; _ } ->
+          e next (if use_ticks then Graph.add_edge g node.id id else g)
         | Fork, (C { id = id1; _ }, C { id = id2; _ }) ->
           e (fst next) (e (snd next) (Graph.add_edges g node.id [ id1; id2 ]))
         | Est _, C { id; _ } -> e next (Graph.add_edge g node.id id)
@@ -65,23 +66,17 @@ let to_graph cnodes start =
 type flow =
   { guaranteed : Set.M(Sd.Packed).t
   ; possibility : Set.M(Sd.Packed).t
-  ; guaranteed_nodes : Set.M(Int).t
   }
 [@@deriving sexp_of, equal]
 
-let create_flow guaranteed possibility guaranteed_nodes =
-  { guaranteed; possibility; guaranteed_nodes }
-;;
+let create_flow guaranteed possibility = { guaranteed; possibility }
+let empty_flow = create_flow (Set.empty (module Sd.Packed)) (Set.empty (module Sd.Packed))
 
-let empty_flow =
-  create_flow
-    (Set.empty (module Sd.Packed))
-    (Set.empty (module Sd.Packed))
-    (Set.empty (module Int))
-;;
-
-let graph_flow g cnodes (start : Sd_node.child_t) =
-  let rev_g = Graph.rev g in
+(*
+let set_union_skewed s1 s2 = Set.fold s1 ~init:s2 ~f:Set.add
+*)
+let acyclic_graph_flow g cnodes (start : Sd_node.child_t) =
+  let g = Graph.rev g in
   let start_id =
     match start with
     | C { id; _ } -> id
@@ -93,68 +88,69 @@ let graph_flow g cnodes (start : Sd_node.child_t) =
       | Est est -> est.sds_estimating
       | _ -> Set.empty (module Sd.Packed))
   in
-  let is_tick id =
-    match id_to_cnode cnodes id with
-    | P { node = { info = Tick; _ }; _ } -> true
-    | _ -> false
+  let flows = Hashtbl.create (module Int) in
+  let rec explore_from on =
+    match id_to_cnode cnodes on with
+    | P { node; _ } ->
+      (match node.info with
+      | Tick -> Some empty_flow
+      | _ ->
+        (match Hashtbl.find flows on with
+        | Some None ->
+          (* doesn't check cycles, hence just says it's okay here *)
+          None
+        | Some (Some s) -> Some s
+        | None ->
+          Hashtbl.set flows ~key:on ~data:None;
+          let value_ops =
+            Set.fold (Graph.next g on) ~init:[] ~f:(fun l i ->
+                let result = explore_from i in
+                (match result with
+                | None -> None
+                | Some flow ->
+                  let guaranteed = Set.union (id_to_estimating i) flow.guaranteed in
+                  Some { flow with guaranteed })
+                :: l)
+          in
+          let values = List.filter_map value_ops ~f:(fun a -> a) in
+          let all_guaranteed = List.map values ~f:(fun f -> f.guaranteed) in
+          let guaranteed =
+            match all_guaranteed, on = start_id with
+            | _, true -> Set.empty (module Sd.Packed)
+            | hd :: tl, false -> List.fold_right tl ~init:hd ~f:Set.union
+            | [], false ->
+              raise_s (String.sexp_of_t (Printf.sprintf "un-linked node %i" on))
+          in
+          let possibility =
+            List.fold_left
+              values
+              ~init:(Set.empty (module Sd.Packed))
+              ~f:(fun p { possibility; guaranteed } ->
+                let all = Set.union possibility guaranteed in
+                Set.union (Set.filter all ~f:(fun s -> not (Set.mem guaranteed s))) p)
+          in
+          let f = Some (create_flow guaranteed possibility) in
+          Hashtbl.set flows ~key:on ~data:f;
+          f))
   in
-  let node_flow (flow : (int, flow, 'a) Map.t) node =
-    if is_tick node
-    then empty_flow
-    else (
-      let flows =
-        Set.fold (Graph.next rev_g node) ~init:[] ~f:(fun l id ->
-            let prev = Map.find_exn flow id in
-            let guaranteed_nodes = Set.add prev.guaranteed_nodes id in
-            let guaranteed = Set.union prev.guaranteed (id_to_estimating id) in
-            { prev with guaranteed; guaranteed_nodes } :: l)
-      in
-      (* it cannot be a first entry to the node if it is guaranteed to already have been passed from the path *)
-      let possible_entries =
-        List.filter flows ~f:(fun flow -> not (Set.mem flow.guaranteed_nodes node))
-      in
-      let guaranteed, guaranteed_nodes =
-        match node = start_id, possible_entries with
-        | false, hd :: tl ->
-          List.fold_left
-            tl
-            ~init:(hd.guaranteed, hd.guaranteed_nodes)
-            ~f:(fun
-                 (old_guaranteed, old_guaranteed_nodes)
-                 { guaranteed; guaranteed_nodes; _ }
-               ->
-              ( Set.inter old_guaranteed guaranteed
-              , Set.inter old_guaranteed_nodes guaranteed_nodes ))
-        | _ -> Set.empty (module Sd.Packed), Set.empty (module Int)
-      in
-      let flow_possiblities =
-        List.map flows ~f:(fun { guaranteed = g; possibility = p; _ } ->
-            let all = Set.union g p in
-            Set.filter all ~f:(fun sd -> not (Set.mem guaranteed sd)))
-      in
-      let possibility =
-        List.fold_left flow_possiblities ~init:(Set.empty (module Sd.Packed)) ~f:Set.union
-      in
-      let flow = create_flow guaranteed possibility guaranteed_nodes in
-      flow)
-  in
-  let rec update_flow curr_flow tick =
-    let new_flow =
-      Map.mapi curr_flow ~f:(fun ~key ~data:_data -> node_flow curr_flow key)
-    in
-    let any_change =
-      Map.existsi new_flow ~f:(fun ~key ~data ->
-          not (equal_flow data (Map.find_exn curr_flow key)))
-    in
-    if any_change then update_flow new_flow (tick + 1) else new_flow
-  in
-  let og_flow = Map.map (Graph.as_map rev_g) ~f:(fun _ -> empty_flow) in
-  update_flow og_flow 0
+  Map.mapi (Graph.as_map g) ~f:(fun ~key ~data:_ -> Option.value_exn (explore_from key))
 ;;
 
-let new_current_checks cnodes start =
-  let g = to_graph cnodes start in
-  let flows = graph_flow g cnodes start in
+let check_scc cnodes scc =
+  if Set.length scc > 1
+  then
+    Set.iter scc ~f:(fun id ->
+        match id_to_cnode cnodes id with
+        | P { node = { info = Est est; _ }; _ } ->
+          Set.iter est.sds_estimating ~f:(fun sd -> raise (Possible_overwrite sd))
+        | _ -> ())
+;;
+
+let current_checks cnodes start =
+  let g = to_graph cnodes start ~use_ticks:true in
+  let scc_list = Graph.scc_list (to_graph cnodes start ~use_ticks:false) in
+  List.iter scc_list ~f:(check_scc cnodes);
+  let flows = acyclic_graph_flow g cnodes start in
   let verify_dep flow lang =
     let dep = Sd_lang.dependencies lang in
     Map.iteri dep ~f:(fun ~key ~data ->
@@ -176,48 +172,8 @@ let new_current_checks cnodes start =
         | Desc desc -> verify_dep flow desc))
 ;;
 
-let _current_checks cnodes start =
-  let explored = Hash_set.create (module Int) in
-  let rec explorer on current_estimated =
-    (* verifies dependencies on current tick state dimensions *)
-    let verify_dep lang =
-      let dep = Sd_lang.dependencies lang in
-      Map.iteri dep ~f:(fun ~key ~data ->
-          if data = 0 && not (Set.mem current_estimated key)
-          then raise (Unsafe_curr_requirement key))
-    in
-    match to_cnode cnodes on with
-    | P { node; next } ->
-      if Hash_set.mem explored node.id
-      then ()
-      else (
-        Hash_set.add
-          explored
-          (match on with
-          | C { id; _ } -> id);
-        match node.info, next with
-        | Exit, () -> ()
-        | Tick, node -> explorer node (Set.empty (module Sd.Packed))
-        | Fork, (n1, n2) ->
-          explorer n1 current_estimated;
-          explorer n2 current_estimated
-        | Est est, n ->
-          verify_dep est.logic;
-          Set.iter est.sds_estimating ~f:(fun sd ->
-              if Set.mem current_estimated sd then raise (Possible_overwrite sd));
-          let current_estimated = Set.union current_estimated est.sds_estimating in
-          explorer n current_estimated
-        | Desc f, (n1, n2) ->
-          verify_dep f;
-          explorer n1 current_estimated;
-          explorer n2 current_estimated)
-  in
-  explorer start (Set.empty (module Sd.Packed))
-;;
-
 exception Possible_exponential_threading of Sd_node.child_t
 
-(* this doesn't work I'm pretty sure *)
 let _all_ticks cnodes start =
   let explored = Hash_set.create (module Int) in
   let rec explore on =
@@ -236,6 +192,7 @@ let _all_ticks cnodes start =
   explore start
 ;;
 
+(* this may not work *)
 let exponential_threads_check cnodes start =
   let rec next_ticks ~explored on =
     match to_cnode cnodes on with
@@ -268,7 +225,7 @@ let exponential_threads_check cnodes start =
 ;;
 
 let safety_checks cnodes start =
-  new_current_checks cnodes start;
+  current_checks cnodes start;
   exponential_threads_check cnodes start
 ;;
 

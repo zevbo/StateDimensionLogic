@@ -18,4 +18,5 @@ module Graph (N : Node) : sig
   val next : t -> N.t -> Set.M(N).t
   val scc_list : t -> Set.M(N).t list
   val rev : t -> t
+  val top_sort : t -> N.t list
 end
