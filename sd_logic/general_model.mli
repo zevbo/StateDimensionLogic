@@ -13,3 +13,4 @@ exception Unsafe_curr_requirement of Sd.Packed.t [@@deriving sexp]
 (* when inconsitent estimates are introduced, will need a new error *)
 exception Possible_overwrite of Sd.Packed.t [@@deriving sexp]
 exception Possible_exponential_threading of Sd_node.child_t
+exception Infinite_loop

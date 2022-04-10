@@ -46,6 +46,28 @@ let nothing_desc2 =
      false)
 ;;
 
+let%test "infinite-loop" =
+  try
+    let _r = Gm.create [ Conn (tick1, C est); Conn (est, C est) ] tick1 in
+    false
+  with
+  | Gm.Infinite_loop -> true
+  | _ -> false
+;;
+
+let%test "infinite-loop2" =
+  try
+    let _r =
+      Gm.create
+        [ Conn (tick1, C fork); Conn (fork, (C est, C fork)); Conn (est, C fork) ]
+        tick1
+    in
+    false
+  with
+  | Gm.Infinite_loop -> true
+  | _ -> false
+;;
+
 let%test "exponential1" =
   try
     let _r =

@@ -172,6 +172,37 @@ let current_checks cnodes start =
         | Desc desc -> verify_dep flow desc))
 ;;
 
+let next_nodes : type a. a Sd_node.t -> a -> Sd_node.child_t list =
+ fun node next ->
+  match node.info, next with
+  | Tick, n -> [ n ]
+  | Exit, () -> []
+  | Fork, (n1, n2) -> [ n1; n2 ]
+  | Desc _, (n1, n2) -> [ n1; n2 ]
+  | Est _, n -> [ n ]
+;;
+
+exception Infinite_loop
+
+let check_ends cnodes start =
+  let explored = Hash_set.create (module Int) in
+  let rec explore on =
+    match to_cnode cnodes on with
+    | P { node; next } ->
+      if Hash_set.mem explored node.id
+      then (
+        match node.info with
+        | Tick -> true
+        | _ -> false)
+      else (
+        Hash_set.add explored node.id;
+        match next_nodes node next with
+        | [] -> true
+        | l -> List.exists l ~f:explore)
+  in
+  if not (explore start) then raise Infinite_loop
+;;
+
 exception Possible_exponential_threading of Sd_node.child_t
 
 let _all_ticks cnodes start =
@@ -225,6 +256,7 @@ let exponential_threads_check cnodes start =
 ;;
 
 let safety_checks cnodes start =
+  check_ends cnodes start;
   current_checks cnodes start;
   exponential_threads_check cnodes start
 ;;
