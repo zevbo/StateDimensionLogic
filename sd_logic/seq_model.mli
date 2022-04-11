@@ -13,10 +13,11 @@ val create_safety
 (** safety defaults to maximum safety *)
 val create : ?safety:safety -> ?end_cond:bool Sd_lang.t -> Sd_est.t list -> t
 
-val tick : t -> t
+val rsh : t -> Rsh.t
 
 (* max_ticks = -1 -> no max *)
 val run : ?no_end_cond:bool -> ?min_ms:float -> ?max_ticks:int -> t -> unit
+val tick : t -> t
 
 exception Premature_sd_req of Sd.Packed.t [@@deriving sexp]
 exception Overwriting_sd_estimate of Sd.Packed.t [@@deriving sexp]

@@ -5,7 +5,11 @@ type t =
   ; sds_estimating : Set.M(Sd.Packed).t
   }
 
-let create logic sds_estimating = { logic; sds_estimating }
+let create_set logic sds_estimating = { logic; sds_estimating }
+
+let create logic sds_estimatingl =
+  { logic; sds_estimating = Set.of_list (module Sd.Packed) sds_estimatingl }
+;;
 
 type safety_info = { max_safety : Safety_level.t }
 

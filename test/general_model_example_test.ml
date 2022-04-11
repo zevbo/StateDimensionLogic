@@ -2,7 +2,8 @@ open! General_model_example
 
 let%expect_test "Main" =
   Main.run ();
-  [%expect{|
+  [%expect
+    {|
     Starting...
     v: 0.036306, x: 0.036306, light on?: false
     Done

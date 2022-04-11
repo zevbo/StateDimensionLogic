@@ -1,5 +1,6 @@
 open! Core
 open! Sd_logic
+open Sd_lang
 
 type particle = Rsh.t
 
@@ -10,7 +11,7 @@ type weighted =
 
 exception Unestimatable_sd of Sd.Packed.t [@@deriving sexp]
 
-let create_logic
+let create_estimator
     start
     (node : Sd_est.t)
     (judge : float Sd_lang.t)
@@ -30,12 +31,12 @@ let create_logic
     Sd.create "particles_sd" (fun (_particles : particle list) ->
         String.sexp_of_t "particles_sd has no meaninful sexp_of")
   in
-  [%map_open.Sd_lang
-    let particles = sd_past particles_sd 1 (V start)
+  let logic =
+    let+ particles = sd_past particles_sd 1 (V [ start ])
     (* values we need to input to the stimator *)
-    and inputs = state (Map.key_set (Sd_lang.dependencies node.logic))
+    and+ inputs = state (Map.key_set (Sd_lang.dependencies node.logic))
     (* extra values that we need for the judge *)
-    and extra_judge_vals = state_past (Map.key_set (Sd_lang.dependencies judge)) 1 in
+    and+ extra_judge_vals = state_past (Map.key_set (Sd_lang.dependencies judge)) 1 in
     (* particles updates to have all the values for the judge *)
     let extras_added_particles =
       List.map particles ~f:(fun particle -> Rsh.use particle extra_judge_vals)
@@ -92,5 +93,7 @@ let create_logic
       List.fold sds_estimating ~init:Rs.empty ~f:(fun rs sd ->
           Rs.set rs sd (avg_value sd))
     in
-    Rs.set rs particles_sd new_particles]
+    Rs.set rs particles_sd new_particles
+  in
+  Sd_est.create logic (List.map sds_estimating ~f:Sd.pack)
 ;;

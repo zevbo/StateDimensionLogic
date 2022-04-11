@@ -4,9 +4,9 @@ module T = struct
   type ('a, _) default =
     | V : 'a -> ('a, 'a) default (* in case of too few states, return associated value of type 'a *)
     | Last : ('a, 'a) default (* in case of too few states, use the oldest state *)
-    | Safe_last : 'a -> ('a, 'a) default (* like last, except in case of too few states and only current state exists, use 'a *)
+    | Safe_last : ('a, 'a option) default (* like last, except in case of too few states and only current state exists, use None *)
     | Unsafe : ('a, 'a) default
-    | Op : ('a, 'a Option.t) default
+    | Op : ('a, 'a option) default
 
   type _ t =
     | Return : 'a -> 'a t
@@ -75,10 +75,10 @@ let rec execute : 'a. 'a t -> Rsh.t -> 'a =
        else (
          try Rsh.find_past_exn rsh n sd with
          | _ -> raise (Sd_not_found (Sd.pack sd, n)))
-     | Safe_last default ->
+     | Safe_last ->
        if n > 0 && Rsh.length rsh <= 1
-       then default
-       else execute (Sd_past (sd, n, Last)) rsh
+       then None
+       else Some (execute (Sd_past (sd, n, Last)) rsh)
      | Last ->
        (try Option.value_exn (Rsh.find_past_last_def rsh n sd) with
        | _ -> raise (Sd_not_found (Sd.pack sd, -1)))
@@ -95,20 +95,12 @@ let rec execute : 'a. 'a t -> Rsh.t -> 'a =
    | Full_rsh () -> rsh
 ;;
 
-module Let_syntax = struct
-  module Let_syntax = struct
-    let return = return
-    let map = map
-    let both = both
-
-    module Open_on_rhs = struct
-      let return = return
-      let sd x = Sd x
-      let sd_past x n def = Sd_past (x, n, def)
-      let sd_history x n = Sd_history (x, n)
-      let state set = State set
-      let state_past set n = State_past (set, n)
-      let full_rsh () = Full_rsh ()
-    end
-  end
-end
+let ( let+ ) a f = map a ~f
+let ( and+ ) = both
+let return = return
+let sd x = Sd x
+let sd_past x n def = Sd_past (x, n, def)
+let sd_history x n = Sd_history (x, n)
+let state set = State set
+let state_past set n = State_past (set, n)
+let full_rsh () = Full_rsh ()

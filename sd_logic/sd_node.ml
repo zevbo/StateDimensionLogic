@@ -26,6 +26,7 @@ let exit = create Exit
 let tick () = create Tick
 let fork () = create Fork
 let est est = create (Est est)
+let estl logic estimating = create (Est (Sd_est.create logic estimating))
 let desc desc = create (Desc desc)
 let compare t1 t2 = Int.compare t1.id t2.id
 let hash t = Int.hash t.id

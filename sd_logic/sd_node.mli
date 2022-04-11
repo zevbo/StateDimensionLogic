@@ -23,6 +23,7 @@ val exit : unit t
 val tick : unit -> child_t t
 val fork : unit -> (child_t * child_t) t
 val est : Sd_est.t -> child_t t
+val estl : Rs.t Sd_lang.t -> Sd.Packed.t list -> child_t t
 val desc : bool Sd_lang.t -> (child_t * child_t) t
 val compare : 'a t -> 'b t -> int
 val hash : 'a t -> int
