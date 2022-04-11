@@ -31,6 +31,8 @@ let%expect_test "top_sort_rev1" =
 
 let scc_list1 = Graph.scc_list g
 let scc_list2 = Graph.scc_list g2
+let scc_graph1 = Graph.scc_graph g
+let scc_graph2 = Graph.scc_graph g2
 
 let%expect_test "scc1" =
   let sexp = List.sexp_of_t (Set.sexp_of_m__t (module Int)) scc_list1 in
@@ -43,3 +45,19 @@ let%expect_test "scc2" =
   print_s sexp;
   [%expect {| ((2) (4) (1 3)) |}]
 ;;
+
+let print_scc_graph ((id_to_scc, graph) : Set.M(Int).t Map.M(Int).t * Graph.t) =
+  let sexp1 = Map.sexp_of_m__t (module Int) (Set.sexp_of_m__t (module Int)) id_to_scc in
+  let sexp2 = Graph.sexp_of_t graph in
+  print_s sexp1;
+  print_s sexp2
+;;
+
+let%expect_test "scc-graph1" = print_scc_graph scc_graph1;
+  [%expect {|
+    ((1 (1)) (2 (2)) (3 (3)))
+    ((1 (2 3)) (2 (3)) (3 ())) |}]
+let%expect_test "scc-graph2" = print_scc_graph scc_graph2;
+  [%expect {|
+    ((1 (1 3)) (2 (2)) (4 (4)))
+    ((1 (2 4)) (2 ()) (4 ())) |}]

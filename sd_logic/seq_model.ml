@@ -39,6 +39,8 @@ type t =
   ; end_cond : bool Sd_lang.t option
   }
 
+let rsh t = t.rsh
+
 (* only keys with n = 1 *)
 let key_dependencies logic =
   let dep = Sd_lang.dependencies logic in

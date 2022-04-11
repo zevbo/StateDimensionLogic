@@ -46,6 +46,48 @@ let nothing_desc2 =
      false)
 ;;
 
+let%test "okay1" =
+  let _r =
+    Gm.create
+      [ Conn (tick1, C est)
+      ; Conn (est, C est2)
+      ; Conn (est2, C nothing_desc)
+      ; Conn (nothing_desc, (C est2, C tick1))
+      ]
+      tick1
+  in
+  true
+;;
+
+let%test "exponential1" =
+  try
+    let _r =
+      Gm.create
+        [ Conn (tick1, C fork); Conn (fork, (C tick1, C tick2)); Conn (tick2, C tick1) ]
+        tick1
+    in
+    false
+  with
+  | Gm.Possible_exponential_threading _node -> true
+  | _ -> false
+;;
+
+let%test "exponential2" =
+  try
+    let _r =
+      Gm.create
+        [ Conn (tick1, C fork)
+        ; Conn (fork, (C nothing_desc, C tick1))
+        ; Conn (nothing_desc, (C fork, C Sd_node.exit))
+        ]
+        tick1
+    in
+    false
+  with
+  | Gm.Possible_exponential_threading __nodeid -> true
+  | _ -> false
+;;
+
 let%test "infinite-loop" =
   try
     let _r = Gm.create [ Conn (tick1, C est); Conn (est, C est) ] tick1 in
@@ -68,19 +110,6 @@ let%test "infinite-loop2" =
   | _ -> false
 ;;
 
-let%test "exponential1" =
-  try
-    let _r =
-      Gm.create
-        [ Conn (tick1, C fork); Conn (fork, (C tick1, C tick2)); Conn (tick2, C tick1) ]
-        tick1
-    in
-    false
-  with
-  | Gm.Possible_exponential_threading _id -> true
-  | _ -> false
-;;
-
 let%test "possible_overwrte" =
   try
     let _r =
@@ -92,19 +121,6 @@ let%test "possible_overwrte" =
   with
   | Gm.Possible_overwrite sd -> Sd.Packed.equal sd (Sd.pack Commons.a)
   | e -> raise e
-;;
-
-let%test "okay1" =
-  let _r =
-    Gm.create
-      [ Conn (tick1, C est)
-      ; Conn (est, C est2)
-      ; Conn (est2, C fork)
-      ; Conn (fork, (C est2, C tick1))
-      ]
-      tick1
-  in
-  true
 ;;
 
 let%test "okay2" =

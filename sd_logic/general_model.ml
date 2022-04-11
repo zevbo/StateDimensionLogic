@@ -76,17 +76,21 @@ let empty_flow = create_flow (Set.empty (module Sd.Packed)) (Set.empty (module S
 let set_union_skewed s1 s2 = Set.fold s1 ~init:s2 ~f:Set.add
 *)
 let acyclic_graph_flow g cnodes (start : Sd_node.child_t) =
-  let g = Graph.rev g in
+  let id_to_scc, scc_graph = Graph.scc_graph (Graph.rev g) in
   let start_id =
     match start with
     | C { id; _ } -> id
   in
   let id_to_estimating id =
-    match id_to_cnode cnodes id with
-    | P { node; next = _ } ->
-      (match node.info with
-      | Est est -> est.sds_estimating
-      | _ -> Set.empty (module Sd.Packed))
+    let scc = Map.find_exn id_to_scc id in
+    if Set.length scc = 1
+    then (
+      match id_to_cnode cnodes id with
+      | P { node; next = _ } ->
+        (match node.info with
+        | Est est -> est.sds_estimating
+        | _ -> Set.empty (module Sd.Packed)))
+    else Set.empty (module Sd.Packed)
   in
   let flows = Hashtbl.create (module Int) in
   let rec explore_from on =
@@ -96,16 +100,12 @@ let acyclic_graph_flow g cnodes (start : Sd_node.child_t) =
       | Tick -> Some empty_flow
       | _ ->
         (match Hashtbl.find flows on with
-        | Some None ->
-          (* doesn't check cycles, hence just says it's okay here *)
-          None
-        | Some (Some s) -> Some s
+        | Some v -> v
         | None ->
           Hashtbl.set flows ~key:on ~data:None;
           let value_ops =
-            Set.fold (Graph.next g on) ~init:[] ~f:(fun l i ->
-                let result = explore_from i in
-                (match result with
+            Set.fold (Graph.next scc_graph on) ~init:[] ~f:(fun l i ->
+                (match explore_from i with
                 | None -> None
                 | Some flow ->
                   let guaranteed = Set.union (id_to_estimating i) flow.guaranteed in
@@ -118,8 +118,7 @@ let acyclic_graph_flow g cnodes (start : Sd_node.child_t) =
             match all_guaranteed, on = start_id with
             | _, true -> Set.empty (module Sd.Packed)
             | hd :: tl, false -> List.fold_right tl ~init:hd ~f:Set.union
-            | [], false ->
-              raise_s (String.sexp_of_t (Printf.sprintf "un-linked node %i" on))
+            | [], false -> Set.empty (module Sd.Packed)
           in
           let possibility =
             List.fold_left
@@ -133,7 +132,19 @@ let acyclic_graph_flow g cnodes (start : Sd_node.child_t) =
           Hashtbl.set flows ~key:on ~data:f;
           f))
   in
-  Map.mapi (Graph.as_map g) ~f:(fun ~key ~data:_ -> Option.value_exn (explore_from key))
+  let scc_flows =
+    Map.mapi (Graph.as_map scc_graph) ~f:(fun ~key ~data:_ ->
+        Option.value_exn (explore_from key))
+  in
+  let flows =
+    Map.fold
+      scc_flows
+      ~init:(Map.empty (module Int))
+      ~f:(fun ~key ~data m ->
+        Set.fold (Map.find_exn id_to_scc key) ~init:m ~f:(fun m id ->
+            Map.set m ~key:id ~data))
+  in
+  flows
 ;;
 
 let check_scc cnodes scc =
@@ -147,8 +158,8 @@ let check_scc cnodes scc =
 ;;
 
 let current_checks cnodes start =
-  let g = to_graph cnodes start ~use_ticks:true in
-  let scc_list = Graph.scc_list (to_graph cnodes start ~use_ticks:false) in
+  let g = to_graph cnodes start ~use_ticks:false in
+  let scc_list = Graph.scc_list g in
   List.iter scc_list ~f:(check_scc cnodes);
   let flows = acyclic_graph_flow g cnodes start in
   let verify_dep flow lang =
@@ -223,36 +234,47 @@ let _all_ticks cnodes start =
   explore start
 ;;
 
-(* this may not work *)
 let exponential_threads_check cnodes start =
-  let rec next_ticks ~explored on =
-    match to_cnode cnodes on with
-    | P { node; next } ->
-      if Set.mem explored node.id
-      then (
-        match node.info with
-        | Tick -> Set.add (Set.empty (module Int)) node.id
-        | _ -> Set.empty (module Int))
-      else (
-        let explored = Set.add explored node.id in
-        let recur = next_ticks ~explored in
-        match node.info, next with
-        | Exit, () -> Set.empty (module Int)
-        | Tick, next_node -> Set.add (recur next_node) node.id
-        | Fork, (n1, n2) ->
-          let n1_set = recur n1 in
-          let n2_set = recur n2 in
-          let comb = Set.union n1_set n2_set in
-          if not (Set.length comb = Set.length n1_set + Set.length n2_set)
-          then (
-            Set.iter n1_set ~f:(fun id ->
-                if Set.mem n2_set id then raise (Possible_exponential_threading (C node)));
-            assert false);
-          comb
-        | Est _, node -> recur node
-        | Desc _, (n1, n2) -> Set.union (recur n1) (recur n2))
+  let g = to_graph cnodes start ~use_ticks:true in
+  let check_tick tick_node next =
+    let g = Graph.remove_edge g tick_node next in
+    let id_to_scc, scc_g = Graph.scc_graph g in
+    let is_large id =
+      Set.length (Map.find_exn id_to_scc id) > 1 || Set.mem (Graph.next g id) id
+    in
+    let has_fork id =
+      let scc = Map.find_exn id_to_scc id in
+      Set.exists scc ~f:(fun id ->
+          match id_to_cnode cnodes id with
+          | P { node = { info = Fork; _ }; _ } -> true
+          | _ -> false)
+    in
+    let explored = Hashtbl.create (module Int) in
+    Hashtbl.set explored ~key:tick_node ~data:true;
+    let rec explore on =
+      match Hashtbl.find explored on with
+      | Some v -> v
+      | None ->
+        let next = Graph.next scc_g on in
+        (* acyclic b/c we're using the scc graph, hence only need to add to hashtbl once explore is finished *)
+        let values = Set.map (module Bool) next ~f:explore in
+        let count = Set.count values ~f:ident in
+        if has_fork on && (count > 1 || (count > 0 && is_large on))
+        then
+          raise
+            (Possible_exponential_threading
+               (match id_to_cnode cnodes on with
+               | P { node; _ } -> C node));
+        count > 0
+    in
+    ignore (explore next : bool)
   in
-  ignore (next_ticks ~explored:(Set.empty (module Int)) start : Set.M(Int).t)
+  Set.iter
+    (Map.key_set (Graph.as_map g))
+    ~f:(fun id ->
+      match id_to_cnode cnodes id with
+      | P { node = { info = Tick; _ }; next = C next } -> check_tick id next.id
+      | _ -> ())
 ;;
 
 let safety_checks cnodes start =
