@@ -28,6 +28,7 @@ module Graph (N : Node) = struct
     Map.set t ~key:n1 ~data:(Set.remove curr n2)
   ;;
 
+  let remove_children t n = Map.set t ~key:n ~data:(Set.empty (module N))
   let next (t : t) n = Option.value (Map.find t n) ~default:(Set.empty (module N))
 
   let rev (t : t) =

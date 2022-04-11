@@ -59,6 +59,7 @@ let%test "okay1" =
   true
 ;;
 
+(*
 let%test "exponential1" =
   try
     let _r =
@@ -153,3 +154,5 @@ let%test "okay3" =
   in
   true
 ;;
+
+*)

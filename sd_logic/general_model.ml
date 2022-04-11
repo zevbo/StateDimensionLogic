@@ -75,8 +75,21 @@ let empty_flow = create_flow (Set.empty (module Sd.Packed)) (Set.empty (module S
 (*
 let set_union_skewed s1 s2 = Set.fold s1 ~init:s2 ~f:Set.add
 *)
+let is_tick cnodes id =
+  match id_to_cnode cnodes id with
+  | P { node = { info = Tick; _ }; _ } -> true
+  | _ -> false
+;;
+
 let acyclic_graph_flow g cnodes (start : Sd_node.child_t) =
-  let id_to_scc, scc_graph = Graph.scc_graph (Graph.rev g) in
+  let g = Graph.rev g in
+  let g =
+    Set.fold
+      (Map.key_set (Graph.as_map g))
+      ~init:g
+      ~f:(fun g id -> if is_tick cnodes id then Graph.remove_children g id else g)
+  in
+  let id_to_scc, scc_graph = Graph.scc_graph g in
   let start_id =
     match start with
     | C { id; _ } -> id
@@ -118,7 +131,9 @@ let acyclic_graph_flow g cnodes (start : Sd_node.child_t) =
             match all_guaranteed, on = start_id with
             | _, true -> Set.empty (module Sd.Packed)
             | hd :: tl, false -> List.fold_right tl ~init:hd ~f:Set.union
-            | [], false -> Set.empty (module Sd.Packed)
+            | [], false ->
+              assert (1 < 0);
+              Set.empty (module Sd.Packed)
           in
           let possibility =
             List.fold_left
@@ -158,8 +173,8 @@ let check_scc cnodes scc =
 ;;
 
 let current_checks cnodes start =
-  let g = to_graph cnodes start ~use_ticks:false in
-  let scc_list = Graph.scc_list g in
+  let g = to_graph cnodes start ~use_ticks:true in
+  let scc_list = Graph.scc_list (to_graph cnodes start ~use_ticks:false) in
   List.iter scc_list ~f:(check_scc cnodes);
   let flows = acyclic_graph_flow g cnodes start in
   let verify_dep flow lang =
@@ -215,24 +230,6 @@ let check_ends cnodes start =
 ;;
 
 exception Possible_exponential_threading of Sd_node.child_t
-
-let _all_ticks cnodes start =
-  let explored = Hash_set.create (module Int) in
-  let rec explore on =
-    match to_cnode cnodes on with
-    | P { node; next } ->
-      if Hash_set.mem explored node.id
-      then Set.empty (module Int)
-      else (
-        Hash_set.add explored node.id;
-        match node.info, next with
-        | Exit, () -> Set.empty (module Int)
-        | Tick, next_node -> Set.add (explore next_node) node.id
-        | Fork, (n1, n2) | Desc _, (n1, n2) -> Set.union (explore n1) (explore n2)
-        | Est _est, n -> explore n)
-  in
-  explore start
-;;
 
 let exponential_threads_check cnodes start =
   let g = to_graph cnodes start ~use_ticks:true in
