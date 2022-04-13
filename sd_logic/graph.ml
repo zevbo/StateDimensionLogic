@@ -10,8 +10,16 @@ end
 module Graph (N : Node) = struct
   type t = Set.M(N).t Map.M(N).t [@@deriving sexp_of]
 
+  exception Unsafe_graph of N.t
+
   let empty : t = Map.empty (module N)
   let create map : t = map
+
+  let assert_safety (t : t) =
+    Map.iter t ~f:(fun s ->
+        Set.iter s ~f:(fun n -> if not (Map.mem t n) then raise (Unsafe_graph n)))
+  ;;
+
   let as_map t = t
   let next_w_def t n = Option.value (Map.find t n) ~default:(Set.empty (module N))
   let add_node t n = Map.set t ~key:n ~data:(next_w_def t n)
@@ -29,11 +37,11 @@ module Graph (N : Node) = struct
   ;;
 
   let remove_children t n = Map.set t ~key:n ~data:(Set.empty (module N))
-  let next (t : t) n = Option.value (Map.find t n) ~default:(Set.empty (module N))
+  let next (t : t) n = Map.find t n
 
   let rev (t : t) =
     Map.fold t ~init:empty ~f:(fun ~key ~data t ->
-        Set.fold data ~init:t ~f:(fun t n -> add_edge t n key))
+        Set.fold data ~init:(add_node t key) ~f:(fun t n -> add_edge t n key))
   ;;
 
   type _ top_sort_ord_ty =
@@ -48,7 +56,7 @@ module Graph (N : Node) = struct
       then l
       else (
         Hash_set.add explored n;
-        n :: Set.fold (next t n) ~f:sorter ~init:l)
+        n :: Set.fold (Option.value_exn (next t n)) ~f:sorter ~init:l)
     in
     match ty with
     | Regular -> List.fold_left ord ~f:sorter ~init:[]
@@ -65,6 +73,7 @@ module Graph (N : Node) = struct
   let top_sort t = top_sort_ord t (Set.to_list (Map.key_set t)) Regular
 
   let scc_list t =
+    assert_safety t;
     let first_sort = top_sort t in
     let second_sort = top_sort_ord (rev t) first_sort Split in
     List.map second_sort ~f:(Set.of_list (module N))
@@ -86,7 +95,7 @@ module Graph (N : Node) = struct
             Set.fold
               scc
               ~init:(Set.empty (module N))
-              ~f:(fun too_add sc -> Set.union too_add (next t sc))
+              ~f:(fun too_add sc -> Set.union too_add (Option.value_exn (next t sc)))
           in
           let scc_out_edges =
             Set.map (module N) old_out_edges ~f:(fun node -> Map.find_exn node_to_id node)

@@ -2,28 +2,33 @@ open! Core
 
 type id = int
 
-type _ info =
-  | Exit : unit info
-  | Tick : child_t info
-  | Fork : (child_t * child_t) info (* first t is next, second is forked *)
-  | Est : Sd_est.t -> child_t info
-  | Desc : bool Sd_lang.t -> (child_t * child_t) info
+type (_, _) info =
+  | Exit : ([ `Exit ], unit) info
+  | Tick : ([ `Tick ], child_t) info
+  | Fork : ([ `Fork ], child_t * child_t) info (* first t is next, second is forked *)
+  | Est : Sd_est.t -> ([ `Est ], child_t) info
+  | Desc : bool Sd_lang.t -> ([ `Desc ], child_t * child_t) info
+  | Waitpid : ([ `Fork ], child_t * child_t) t -> ([ `Waitpid ], child_t) info
 
-and 'a t =
-  { info : 'a info [@hash.ignore] [@compare.ignore]
+and ('a, 'b) t =
+  { info : ('a, 'b) info [@hash.ignore] [@compare.ignore]
   ; id : id
   }
 
 and child_t = C : _ t -> child_t
 
-type conn = Conn : ('a t * 'a) -> conn
+type conn = Conn : (('a, 'b) t * 'b) -> conn
 
-val create : 'a info -> 'a t
-val exit : unit t
-val tick : unit -> child_t t
-val fork : unit -> (child_t * child_t) t
-val est : Sd_est.t -> child_t t
-val estl : Rs.t Sd_lang.t -> Sd.Packed.t list -> child_t t
-val desc : bool Sd_lang.t -> (child_t * child_t) t
-val compare : 'a t -> 'b t -> int
-val hash : 'a t -> int
+val exit : ([ `Exit ], unit) t
+val tick : unit -> ([ `Tick ], child_t) t
+val fork : unit -> ([ `Fork ], child_t * child_t) t
+
+val fork_and_waitpid
+  :  unit
+  -> ([ `Fork ], child_t * child_t) t * ([ `Waitpid ], child_t) t
+
+val est : Sd_est.t -> ([ `Est ], child_t) t
+val estl : Rs.t Sd_lang.t -> Sd.Packed.t list -> ([ `Est ], child_t) t
+val desc : bool Sd_lang.t -> ([ `Desc ], child_t * child_t) t
+val compare : ('a1, 'a2) t -> ('b1, 'b2) t -> int
+val hash : ('a, 'b) t -> int

@@ -46,6 +46,19 @@ let nothing_desc2 =
      false)
 ;;
 
+let%test "unconnected" =
+  try
+    let _r =
+      Gm.create
+        [ Conn (tick1, C fork); Conn (fork, (C tick1, C tick1)); Conn (est, C est) ]
+        tick1
+    in
+    false
+  with
+  | Gm.Unconnected_node (Sd_node.C { id; _ }) -> id = est.id
+  | s -> raise s
+;;
+
 let%test "okay1" =
   let _r =
     Gm.create
@@ -59,7 +72,6 @@ let%test "okay1" =
   true
 ;;
 
-(*
 let%test "exponential1" =
   try
     let _r =
@@ -154,5 +166,3 @@ let%test "okay3" =
   in
   true
 ;;
-
-*)
