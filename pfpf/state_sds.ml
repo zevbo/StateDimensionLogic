@@ -3,6 +3,8 @@ open! Core
 
 let pos = Sd.create "pos" Vec.sexp_of_t
 let angle = Sd.create "angle" Float.sexp_of_t
+let lpos = Sd.create "lpos" Float.sexp_of_t
+let rpos = Sd.create "rpos" Float.sexp_of_t
 let lomega = Sd.create "lomega" Float.sexp_of_t
 let romega = Sd.create "romega" Float.sexp_of_t
 let linput = Sd.create "linput" Float.sexp_of_t

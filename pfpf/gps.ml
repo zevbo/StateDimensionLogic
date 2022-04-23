@@ -6,7 +6,14 @@ type t =
   { error_per : float
   ; rellocate_dist : float
   ; rellocate_error : float
+  ; pos_sd : Vec.t Sd.t
+  ; gps_pos_sd : Vec.t Sd.t
   }
+
+let create pos_sd error_per rellocate_dist rellocate_error =
+  let gps_pos_sd = Sd.create "gps_pos" Vec.sexp_of_t in
+  { error_per; rellocate_dist; rellocate_error; pos_sd; gps_pos_sd }
+;;
 
 let random_vec error =
   let error_mag = Random.float_range 0.0 error in
@@ -16,10 +23,10 @@ let random_vec error =
 
 let rellocate_to (t : t) real_pos = Vec.add real_pos (random_vec t.rellocate_error)
 
-let update_logic t pos_sd gps_pos_sd =
-  let+ prev_gps_pos = sd_past gps_pos_sd 1 Op
-  and+ prev_pos = sd_past pos_sd 1 Op
-  and+ pos = sd pos_sd in
+let update_logic t =
+  let+ prev_gps_pos = sd_past t.gps_pos_sd 1 Op
+  and+ prev_pos = sd_past t.pos_sd 1 Op
+  and+ pos = sd t.pos_sd in
   let gps_pos =
     match prev_pos, prev_gps_pos with
     | None, None -> rellocate_to t pos
@@ -32,10 +39,7 @@ let update_logic t pos_sd gps_pos_sd =
       else gps_pos
     | Some _, None | None, Some _ -> raise (Failure "Unexpected failure in gps logic")
   in
-  Rs.set Rs.empty gps_pos_sd gps_pos
+  Rs.set Rs.empty t.gps_pos_sd gps_pos
 ;;
 
-let create_est t (pos_sd : Vec.t Sd.t) =
-  let gps_pos_sd = Sd.create "gps_pos" Vec.sexp_of_t in
-  Sd_est.create (update_logic t pos_sd gps_pos_sd) [ Sd.pack gps_pos_sd ]
-;;
+let est t = Sd_est.create (update_logic t) [ Sd.pack t.gps_pos_sd ]

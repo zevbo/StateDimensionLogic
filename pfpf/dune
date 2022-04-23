@@ -1,4 +1,4 @@
-(library
+(executable
  (name pfpf)
  (libraries sd_logic)
  (preprocess

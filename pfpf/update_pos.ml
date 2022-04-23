@@ -24,7 +24,9 @@ let update_pos_logic =
   let+ prev_pos = sd_past State_sds.pos 1 (V starting_pos)
   and+ angle = sd_past State_sds.angle 1 (V starting_angle)
   and+ lomega = sd State_sds.lomega
-  and+ romega = sd State_sds.romega in
+  and+ romega = sd State_sds.romega
+  and+ lpos = sd_past State_sds.lpos 1 (V 0.0)
+  and+ rpos = sd_past State_sds.rpos 1 (V 0.0) in
   let ldist = lomega *. dt in
   let rdist = romega *. dt in
   let del_theta = (rdist -. ldist) /. width in
@@ -37,9 +39,17 @@ let update_pos_logic =
   in
   let del_pos = Vec.rotate frame_del_pos angle in
   let rs = Rs.set Rs.empty State_sds.angle (angle +. del_theta) in
+  let rs = Rs.set rs State_sds.lpos (lpos +. ldist) in
+  let rs = Rs.set rs State_sds.rpos (rpos +. rdist) in
   Rs.set rs State_sds.pos (Vec.add prev_pos del_pos)
 ;;
 
 let update_pos_est =
-  Sd_est.create update_pos_logic [ Sd.pack State_sds.angle; Sd.pack State_sds.pos ]
+  Sd_est.create
+    update_pos_logic
+    [ Sd.pack State_sds.angle
+    ; Sd.pack State_sds.pos
+    ; Sd.pack State_sds.lpos
+    ; Sd.pack State_sds.rpos
+    ]
 ;;
