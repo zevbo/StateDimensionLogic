@@ -13,8 +13,8 @@ exception Sd_not_found of (Sd.Packed.t * int) [@@deriving sexp]
 
 type packed = P : 'a t -> packed
 
-val dependencies_p : packed -> int Map.M(Sd.Packed).t
 val dependencies : 'a t -> int Map.M(Sd.Packed).t
+val curr_req : 'a t -> Set.M(Sd.Packed).t
 
 val dependency_union
   :  int Map.M(Sd.Packed).t

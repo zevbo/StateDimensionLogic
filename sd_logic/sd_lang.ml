@@ -31,29 +31,39 @@ include Applicative.Make_using_map2 (struct
   let map = `Define_using_map2
 end)
 
-let dependency_of_list l = Map.of_alist_reduce (module Sd.Packed) l ~f:max
+let sdependency_union = Int.max
+let sdependency_w_curr_union (v1, b1) (v2, b2) = sdependency_union v1 v2, b1 || b2
+
+let dependency_w_curr_of_list l =
+  Map.of_alist_reduce (module Sd.Packed) l ~f:sdependency_w_curr_union
+;;
+
+let dependency_w_curr_union d1 d2 =
+  Map.merge_skewed d1 d2 ~combine:(fun ~key:_key -> sdependency_w_curr_union)
+;;
+
+let dependency_union d1 d2 =
+  Map.merge_skewed d1 d2 ~combine:(fun ~key:_key -> sdependency_union)
+;;
 
 (* should have sense of required and optional for current *)
-let rec dependencies_p : packed -> (Sd.Packed.t, int, Sd.Packed.comparator_witness) Map.t
+let rec dependencies_w_curr_p
+    : packed -> (Sd.Packed.t, int * bool, Sd.Packed.comparator_witness) Map.t
   = function
   | P t ->
     (match t with
     | Full_rsh () | Return _ -> Map.empty (module Sd.Packed)
     | Map2 (a, b, _) ->
-      Map.merge (dependencies_p (P a)) (dependencies_p (P b)) ~f:(fun ~key:_k values ->
-          match values with
-          | `Both (v1, v2) -> Some (max v1 v2)
-          | `Left v1 -> Some v1
-          | `Right v2 -> Some v2)
-    | Sd sd -> dependency_of_list [ Sd.pack sd, 0 ]
-    | Sd_past (sd, n, _default) -> dependency_of_list [ Sd.pack sd, n ]
-    | Sd_history (sd, n) -> dependency_of_list [ Sd.pack sd, n ]
-    | State sd_set -> Map.of_key_set sd_set ~f:(fun _key -> 0)
-    | State_past (sd_set, i) -> Map.of_key_set sd_set ~f:(fun _key -> i))
+      dependency_w_curr_union (dependencies_w_curr_p (P a)) (dependencies_w_curr_p (P b))
+    | Sd sd -> dependency_w_curr_of_list [ Sd.pack sd, (0, true) ]
+    | Sd_past (sd, n, _default) -> dependency_w_curr_of_list [ Sd.pack sd, (n, n = 0) ]
+    | Sd_history (sd, n) -> dependency_w_curr_of_list [ Sd.pack sd, (n, false) ]
+    | State sd_set -> Map.of_key_set sd_set ~f:(fun _key -> 0, false)
+    | State_past (sd_set, i) -> Map.of_key_set sd_set ~f:(fun _key -> i, false))
 ;;
 
-let dependency_union d1 d2 = Map.merge_skewed d1 d2 ~combine:(fun ~key:_key -> Int.max)
-let dependencies t = dependencies_p (P t)
+let dependencies t = Map.map (dependencies_w_curr_p (P t)) ~f:fst
+let curr_req t = Map.key_set (Map.filter (dependencies_w_curr_p (P t)) ~f:snd)
 
 (* -1 implies it doesn't exist period *)
 exception Sd_not_found of (Sd.Packed.t * int) [@@deriving sexp]

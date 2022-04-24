@@ -42,12 +42,6 @@ type t =
 let rsh t = t.rsh
 
 (* only keys with n = 1 *)
-let key_dependencies logic =
-  let dep = Sd_lang.dependencies logic in
-  let curr_dep = Map.filter dep ~f:(fun n -> n = 0) in
-  Map.key_set curr_dep
-;;
-
 let apply t =
   List.fold_left t.nodes ~init:t.rsh ~f:(fun state_history node ->
       let estimated_state =
@@ -73,7 +67,7 @@ let current_check (t : t) =
   List.fold_until
     ~init:(Set.empty (module Sd.Packed))
     ~f:(fun guaranteed node ->
-      let required, estimating = key_dependencies node.logic, node.sds_estimating in
+      let required, estimating = Sd_lang.curr_req node.logic, node.sds_estimating in
       let premature_sd = Set.find required ~f:(fun sd -> not (Set.mem guaranteed sd)) in
       let overwritten_sd = Set.find estimating ~f:(Set.mem guaranteed) in
       match premature_sd, overwritten_sd with
