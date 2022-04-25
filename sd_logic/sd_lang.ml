@@ -78,13 +78,10 @@ let rec execute : 'a. 'a t -> Rsh.t -> 'a =
      | _ -> raise (Sd_not_found (Sd.pack sd, 0)))
    | Sd_past (sd, n, default) ->
      (match default with
-     (* probably wanna change this so it only defaults if we're past the length *)
      | V default ->
        if n >= Rsh.length rsh
        then default
-       else (
-         try Rsh.find_past_exn rsh n sd with
-         | _ -> raise (Sd_not_found (Sd.pack sd, n)))
+       else Option.value (Rsh.find_past rsh n sd) ~default
      | Safe_last ->
        if n > 0 && Rsh.length rsh <= 1
        then None

@@ -11,44 +11,56 @@ type weighted =
 
 exception Unestimatable_sd of Sd.Packed.t [@@deriving sexp]
 
-let create_estimator
-    start
-    (node : Sd_est.t)
-    (judge : float Sd_lang.t)
-    (sds_estimating : float Sd.t List.t)
-    num_particles
+module type Filterable = sig
+  type t
+
+  val average : t list -> t
+  val add_error : t -> t -> t
+end
+
+type est_and_info =
+  | P : (module Filterable with type t = 'a) * 'a Sd.t * 'a -> est_and_info
+
+(* todo: automatically create start rsh *)
+let create_est
+    ~start
+    ~(est : Sd_est.t)
+    ~(judge : float Sd_lang.t)
+    ~(sds_estimating_and_info : est_and_info List.t)
+    ~num_particles
   =
   assert (num_particles > 0);
   (* we can only estimate summable SD. Currently only allowing floats but could allow any summable *)
+  let sds_estimating =
+    List.map sds_estimating_and_info ~f:(fun (P (_, sd, _)) -> Sd.pack sd)
+  in
   let unestimated_sd =
-    List.find sds_estimating ~f:(fun sd -> not (Set.mem node.sds_estimating (Sd.pack sd)))
+    List.find sds_estimating ~f:(fun sd -> not (Set.mem est.sds_estimating sd))
   in
   (match unestimated_sd with
   | None -> ()
-  | Some sd -> raise (Unestimatable_sd (Sd.pack sd)));
+  | Some sd -> raise (Unestimatable_sd sd));
   (* storing the list of particles in this sd *)
   let particles_sd =
-    Sd.create "particles_sd" (fun (_particles : particle list) ->
+    Sd.create "particles_sd" (fun (_particles : weighted list) ->
         String.sexp_of_t "particles_sd has no meaninful sexp_of")
   in
+  let judge_dep = Map.key_set (Sd_lang.dependencies judge) in
   let logic =
-    let+ particles = sd_past particles_sd 1 (V [ start ])
+    let+ weighted_particles =
+      sd_past particles_sd 1 (V [ { weight = 1.0; particle = start } ])
     (* values we need to input to the stimator *)
-    and+ inputs = state (Map.key_set (Sd_lang.dependencies node.logic))
+    and+ inputs = state (Map.key_set (Sd_lang.dependencies est.logic))
     (* extra values that we need for the judge *)
-    and+ extra_judge_vals = state_past (Map.key_set (Sd_lang.dependencies judge)) 1 in
+    and+ extra_judge_vals = state judge_dep in
     (* particles updates to have all the values for the judge *)
-    let extras_added_particles =
-      List.map particles ~f:(fun particle -> Rsh.use particle extra_judge_vals)
-    in
-    let weighted_particles =
-      List.map extras_added_particles ~f:(fun particle ->
-          { particle; weight = Float.max (Sd_lang.execute judge particle) 0.0 })
-    in
+    let real_num_particles = List.length weighted_particles in
+    List.iter weighted_particles ~f:(fun weighted ->
+        assert (Float.(weighted.weight <= 1.0)));
     let total_weight =
       List.sum (module Float) weighted_particles ~f:(fun weighted -> weighted.weight)
     in
-    let real_num_particles = List.length particles in
+    Printf.printf "tw: %f\n" total_weight;
     let probability weighted =
       if Float.(total_weight = 0.0)
       then 1.0 /. Float.of_int real_num_particles
@@ -56,7 +68,7 @@ let create_estimator
     in
     (* note: worst big O is the n log n sort here. Maybe fixable? *)
     (* selection_ns determine the random choice of the particles *)
-    let selections_ns =
+    let selection_ns =
       List.sort
         (List.init num_particles ~f:(fun _ -> Random.float 1.0))
         ~compare:Float.compare
@@ -67,33 +79,43 @@ let create_estimator
       | [], _ -> []
       | _, [] -> failwith "Internal Error on Select Particles"
       | n :: ns, weighted :: particles ->
-        let on = on +. probability n in
-        if List.is_empty particles || Float.(n <= on)
-        then weighted.particle :: select_particles ~on particles ns
-        else select_particles ~on particles selections_ns
+        let new_on = on +. probability n in
+        if List.is_empty particles || Float.(n <= new_on)
+        then weighted.particle :: select_particles ~on weighted_particles ns
+        else select_particles ~on:new_on particles selection_ns
     in
-    let selected_particles = select_particles weighted_particles selections_ns in
+    let selected_particles = select_particles weighted_particles selection_ns in
     let new_particles =
       List.map selected_particles ~f:(fun particle ->
           (* add required values for estimator *)
           let particle = Rsh.add_state particle inputs in
-          let particle =
-            Rsh.use
-              particle
-              (Sd_est.execute ~safety:(Sd_est.create_safety ()) node particle)
+          let result = Sd_est.execute ~safety:(Sd_est.create_safety ()) est particle in
+          let result_w_error =
+            List.fold_left
+              sds_estimating_and_info
+              ~init:Rs.empty
+              ~f:(fun result_w_error (P ((module F), sd, error)) ->
+                Rs.set result_w_error sd (F.add_error (Rs.find_exn result sd) error))
           in
+          let particle = Rsh.use particle result_w_error in
           particle)
     in
+    let extras_added_particles =
+      List.map new_particles ~f:(fun particle -> Rsh.use particle extra_judge_vals)
+    in
+    let weighted_particles =
+      List.map extras_added_particles ~f:(fun particle ->
+          { particle; weight = Float.max (Sd_lang.execute judge particle) 0.0 })
+    in
     (* determine average value to find particle we want *)
-    let total_value sd =
-      List.sum (module Float) new_particles ~f:(fun particle -> Rsh.find_exn particle sd)
+    let avg_value (type a) (module F : Filterable with type t = a) (sd : a Sd.t) =
+      F.average (List.map new_particles ~f:(fun particle -> Rsh.find_exn particle sd))
     in
-    let avg_value sd = total_value sd /. Float.of_int num_particles in
     let rs =
-      List.fold sds_estimating ~init:Rs.empty ~f:(fun rs sd ->
-          Rs.set rs sd (avg_value sd))
+      List.fold sds_estimating_and_info ~init:Rs.empty ~f:(fun rs (P (m, sd, _)) ->
+          Rs.set rs sd (avg_value m sd))
     in
-    Rs.set rs particles_sd new_particles
+    Rs.set rs particles_sd weighted_particles
   in
-  Sd_est.create logic (List.map sds_estimating ~f:Sd.pack)
+  Sd_est.create logic (Sd.pack particles_sd :: sds_estimating)
 ;;

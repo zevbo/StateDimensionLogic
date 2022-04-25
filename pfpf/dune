@@ -1,5 +1,5 @@
 (executable
  (name pfpf)
- (libraries sd_logic)
+ (libraries sd_logic state_estimators)
  (preprocess
   (pps ppx_jane)))

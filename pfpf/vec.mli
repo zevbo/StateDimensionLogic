@@ -9,6 +9,8 @@ val create : float -> float -> t
 val mag_sq : t -> float
 val mag : t -> float
 val scale : t -> float -> t
+val ( + ) : t -> t -> t
+val ( - ) : t -> t -> t
 val add : t -> t -> t
 val sub : t -> t -> t
 val dot : t -> t -> float
@@ -31,3 +33,4 @@ val normal_angle_range : float
 val min_angle : float
 val max_angle : float
 val origin : t
+val zero : t

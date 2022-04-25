@@ -250,10 +250,9 @@ let current_checks cnodes start =
   List.iter scc_list ~f:(check_scc cnodes);
   let flows = acyclic_graph_flow g cnodes start in
   let verify_dep flow lang =
-    let dep = Sd_lang.dependencies lang in
-    Map.iteri dep ~f:(fun ~key ~data ->
-        if data = 0 && not (Set.mem flow.guaranteed key)
-        then raise (Unsafe_curr_requirement key))
+    let dep = Sd_lang.curr_req lang in
+    Set.iter dep ~f:(fun sd ->
+        if not (Set.mem flow.guaranteed sd) then raise (Unsafe_curr_requirement sd))
   in
   Map.iteri flows ~f:(fun ~key:id ~data:flow ->
       match id_to_cnode cnodes id with

@@ -12,9 +12,11 @@ let update_omega_est =
     and+ romega = sd_past State_sds.romega 1 (V 0.0)
     and+ linput = sd_past State_sds.linput 1 (V 0.0)
     and+ rinput = sd_past State_sds.rinput 1 (V 0.0) in
+    let drag_f = drag *. 0.5 *. (lomega +. romega) in
+    let update_omega omega input = omega +. ((input -. drag_f) *. dt) in
     let rs = Rs.empty in
-    let rs = Rs.set rs State_sds.lomega (lomega +. (linput *. dt)) in
-    let rs = Rs.set rs State_sds.romega (romega +. (rinput *. dt)) in
+    let rs = Rs.set rs State_sds.lomega (update_omega lomega linput) in
+    let rs = Rs.set rs State_sds.romega (update_omega romega rinput) in
     rs
   in
   Sd_est.create logic [ Sd.pack State_sds.lomega; Sd.pack State_sds.romega ]
@@ -27,8 +29,8 @@ let update_pos_logic =
   and+ romega = sd State_sds.romega
   and+ lpos = sd_past State_sds.lpos 1 (V 0.0)
   and+ rpos = sd_past State_sds.rpos 1 (V 0.0) in
-  let ldist = lomega *. dt in
-  let rdist = romega *. dt in
+  let ldist = lomega *. dt *. radius in
+  let rdist = romega *. dt *. radius in
   let del_theta = (rdist -. ldist) /. width in
   let frame_del_pos =
     if Float.(del_theta = 0.0)
@@ -39,8 +41,8 @@ let update_pos_logic =
   in
   let del_pos = Vec.rotate frame_del_pos angle in
   let rs = Rs.set Rs.empty State_sds.angle (angle +. del_theta) in
-  let rs = Rs.set rs State_sds.lpos (lpos +. ldist) in
-  let rs = Rs.set rs State_sds.rpos (rpos +. rdist) in
+  let rs = Rs.set rs State_sds.lpos (lpos +. (ldist /. radius)) in
+  let rs = Rs.set rs State_sds.rpos (rpos +. (rdist /. radius)) in
   Rs.set rs State_sds.pos (Vec.add prev_pos del_pos)
 ;;
 
