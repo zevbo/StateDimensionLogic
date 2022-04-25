@@ -54,11 +54,17 @@ let create_est
         String.sexp_of_t "particles_sd has no meaninful sexp_of")
   in
   let judge_dep = Map.key_set (Sd_lang.dependencies judge) in
+  let est_dep =
+    Set.filter
+      (Map.key_set (Sd_lang.dependencies est.logic))
+      ~f:(fun sd -> not (Set.mem est.sds_estimating sd))
+  in
+  (* TODO: check if estimator requires a current value for something it estiamtes *)
   let logic =
     let+ weighted_particles =
       sd_past particles_sd 1 (V [ { weight = 1.0; particle = start } ])
     (* values we need to input to the stimator *)
-    and+ inputs = state (Map.key_set (Sd_lang.dependencies est.logic))
+    and+ inputs = state est_dep
     (* extra values that we need for the judge *)
     and+ extra_judge_vals = state judge_dep in
     (* particles updates to have all the values for the judge *)
@@ -103,7 +109,7 @@ let create_est
           let result_w_error =
             List.fold_left
               sds_estimating_and_info
-              ~init:Rs.empty
+              ~init:result
               ~f:(fun result_w_error (P ((module F), sd, error)) ->
                 Rs.set result_w_error sd (F.add_error (Rs.find_exn result sd) error))
           in

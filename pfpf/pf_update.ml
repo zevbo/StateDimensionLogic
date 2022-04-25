@@ -46,7 +46,7 @@ let sds_estimating_and_info =
 ;;
 
 let rellocate_margin = 1.
-let alpha = 0.5
+let alpha = 0.9
 
 let gps_judge =
   let+ gps = sd Sensors.gps.gps_pos_sd
@@ -57,7 +57,6 @@ let gps_judge =
 
 let start = Rsh.create ~min_default_length:2 ()
 
-(*
 let pf =
   Particle_filter.create_est
     ~start
@@ -66,7 +65,6 @@ let pf =
     ~est:Mupdate_pos.est
     ~num_particles:100
 ;;
-*)
 
 let pf_small =
   Particle_filter.create_est
