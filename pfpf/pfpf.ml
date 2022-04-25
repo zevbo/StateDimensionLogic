@@ -25,7 +25,7 @@ let seq_model =
     ; Encoder.est rencoder
     ; Gps.est gps
     ; Imu.est imu (* ; Mupdate_pos.est *)
-    ; Pf_update.pf
+    ; Pf_update.pfpf
     ; Controller.est
     ; print_error
     ]

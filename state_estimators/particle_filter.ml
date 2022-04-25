@@ -21,6 +21,13 @@ end
 type est_and_info =
   | P : (module Filterable with type t = 'a) * 'a Sd.t * 'a -> est_and_info
 
+let global_id = ref (-1)
+
+let get_id () =
+  global_id := !global_id + 1;
+  !global_id
+;;
+
 (* todo: automatically create start rsh *)
 let create_est
     ~start
@@ -41,8 +48,9 @@ let create_est
   | None -> ()
   | Some sd -> raise (Unestimatable_sd sd));
   (* storing the list of particles in this sd *)
+  let id = get_id () in
   let particles_sd =
-    Sd.create "particles_sd" (fun (_particles : weighted list) ->
+    Sd.create (Printf.sprintf "particles_sd%i" id) (fun (_particles : weighted list) ->
         String.sexp_of_t "particles_sd has no meaninful sexp_of")
   in
   let judge_dep = Map.key_set (Sd_lang.dependencies judge) in
@@ -60,7 +68,6 @@ let create_est
     let total_weight =
       List.sum (module Float) weighted_particles ~f:(fun weighted -> weighted.weight)
     in
-    Printf.printf "tw: %f\n" total_weight;
     let probability weighted =
       if Float.(total_weight = 0.0)
       then 1.0 /. Float.of_int real_num_particles
@@ -73,15 +80,18 @@ let create_est
         (List.init num_particles ~f:(fun _ -> Random.float 1.0))
         ~compare:Float.compare
     in
+    let total_selection_weight = ref 0.0 in
     (* randomly select a list of num_particles particles *)
     let rec select_particles ?(on = 0.0) weighted_particles selection_ns =
       match selection_ns, weighted_particles with
       | [], _ -> []
       | _, [] -> failwith "Internal Error on Select Particles"
       | n :: ns, weighted :: particles ->
-        let new_on = on +. probability n in
+        let new_on = on +. probability weighted.weight in
         if List.is_empty particles || Float.(n <= new_on)
-        then weighted.particle :: select_particles ~on weighted_particles ns
+        then (
+          total_selection_weight := !total_selection_weight +. weighted.weight;
+          weighted.particle :: select_particles ~on weighted_particles ns)
         else select_particles ~on:new_on particles selection_ns
     in
     let selected_particles = select_particles weighted_particles selection_ns in

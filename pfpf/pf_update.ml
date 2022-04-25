@@ -57,6 +57,7 @@ let gps_judge =
 
 let start = Rsh.create ~min_default_length:2 ()
 
+(*
 let pf =
   Particle_filter.create_est
     ~start
@@ -64,4 +65,23 @@ let pf =
     ~judge:gps_judge
     ~est:Mupdate_pos.est
     ~num_particles:100
+;;
+*)
+
+let pf_small =
+  Particle_filter.create_est
+    ~start
+    ~sds_estimating_and_info
+    ~judge:gps_judge
+    ~est:Mupdate_pos.est
+    ~num_particles:10
+;;
+
+let pfpf =
+  Particle_filter.create_est
+    ~start
+    ~sds_estimating_and_info
+    ~judge:gps_judge
+    ~est:pf_small
+    ~num_particles:10
 ;;
