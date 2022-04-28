@@ -25,10 +25,10 @@ let seq_model =
     ; Encoder.est rencoder
     ; Gps.est gps
     ; Imu.est imu (* ; Mupdate_pos.est *)
-    ; Pf_update.pf
+    ; Pf_update.pfpf
     ; Controller.est
     ; print_error
     ]
 ;;
 
-let t = Seq_model.run seq_model ~max_ticks:400
+let t = Seq_model.run seq_model ~max_ticks:1000
