@@ -510,8 +510,8 @@ let step ctxt ~safety =
   { ctxt with int_rsh }, step_result
 ;;
 
-let rec run_thread_tick ctxt result_rsh_ref ~safety =
-  let run_thread_tick ctxt = run_thread_tick ctxt result_rsh_ref ~safety in
+let rec run_thread_tick result_rsh_ref ctxt ~safety : unit =
+  let run_thread_tick = run_thread_tick result_rsh_ref ~safety in
   let ctxt, step_result = step ctxt ~safety in
   match step_result with
   | On node -> run_thread_tick { ctxt with node }
@@ -520,7 +520,7 @@ let rec run_thread_tick ctxt result_rsh_ref ~safety =
     ctxt.t.continuations := { ctxt with node } :: !(ctxt.t.continuations);
     Mutex.unlock ctxt.t.continuations_lock;
     thread_exit ctxt result_rsh_ref
-  | Exited -> thread_exit ctxt
+  | Exited -> thread_exit ctxt result_rsh_ref
   | Forked (node, forked_node) ->
     let t =
       (* zTODO: new_function *)
@@ -537,12 +537,27 @@ type safety = Sd_est.safety
 let run_tick t ~safety =
   let continuations = !(t.continuations) in
   t.continuations := [];
-  let threads =
+  let rsh_refs_and_threads =
     List.map continuations ~f:(fun ctxt ->
-        Thread.create ~on_uncaught_exn:`Print_to_stderr (run_thread_tick ~safety) ctxt)
+        let rsh_ref = ref (Rsh.create ()) in
+        ( rsh_ref
+        , Thread.create
+            ~on_uncaught_exn:`Print_to_stderr
+            (run_thread_tick rsh_ref ~safety)
+            ctxt ))
   in
-  List.iter threads ~f:Thread.join;
-  { t with rsh = Rsh.add_empty_state t.rsh }
+  let rsh =
+    List.fold rsh_refs_and_threads ~init:t.rsh ~f:(fun rsh (rsh_ref, thread) ->
+        Thread.join thread;
+        Printf.printf "rs: %s\n" (Sexp.to_string (Rs.sexp_of_t (Rsh.curr_state rsh)));
+        let rsh = Rsh.use rsh (Rsh.curr_state !rsh_ref) in
+        Printf.printf
+          "rs after: %s\n"
+          (Sexp.to_string (Rs.sexp_of_t (Rsh.curr_state rsh)));
+        rsh)
+  in
+  Printf.printf "rsh after: %s\n" (Sexp.to_string (Rsh.sexp_of_t rsh));
+  { t with rsh = Rsh.add_empty_state rsh }
 ;;
 
 let rec run t ~safety ~num_ticks =
