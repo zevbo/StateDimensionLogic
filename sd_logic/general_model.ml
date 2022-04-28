@@ -544,19 +544,13 @@ let run_tick t ~safety =
         , Thread.create
             ~on_uncaught_exn:`Print_to_stderr
             (run_thread_tick rsh_ref ~safety)
-            ctxt ))
+            { ctxt with int_rsh = t.rsh } ))
   in
   let rsh =
     List.fold rsh_refs_and_threads ~init:t.rsh ~f:(fun rsh (rsh_ref, thread) ->
         Thread.join thread;
-        Printf.printf "rs: %s\n" (Sexp.to_string (Rs.sexp_of_t (Rsh.curr_state rsh)));
-        let rsh = Rsh.use rsh (Rsh.curr_state !rsh_ref) in
-        Printf.printf
-          "rs after: %s\n"
-          (Sexp.to_string (Rs.sexp_of_t (Rsh.curr_state rsh)));
-        rsh)
+        Rsh.use rsh (Rsh.curr_state !rsh_ref))
   in
-  Printf.printf "rsh after: %s\n" (Sexp.to_string (Rsh.sexp_of_t rsh));
   { t with rsh = Rsh.add_empty_state rsh }
 ;;
 
