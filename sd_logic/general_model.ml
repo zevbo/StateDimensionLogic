@@ -17,7 +17,7 @@ module Mutex = Error_checking_mutex
   although in practice necessary in some places *)
 
 type t =
-  { rsh : Rsh.t ref
+  { rsh : Rsh.t
   ; continuations : ctxt list ref
   ; rsh_lock : Mutex.t
   ; continuations_lock : Mutex.t
@@ -28,6 +28,7 @@ and ctxt =
   { t : t
   ; node : Sd_node.child_t
   ; children : Thread.t list
+  ; int_rsh : Rsh.t (* int_rsh = intermediate rsh *)
   }
 
 (* zTODO: add ability to increase lengths *)
@@ -460,14 +461,14 @@ let create (connections : Sd_node.conn list) (start : ('a, 'b) Sd_node.t) =
   safety_checks cnodes (C start);
   let sd_lengths = Map.map (dependencies cnodes (C start)) ~f:(fun n -> n + 1) in
   let t =
-    { rsh = ref (Rsh.create ~sd_lengths ())
+    { rsh = Rsh.create ~sd_lengths ()
     ; continuations = ref []
     ; rsh_lock = Mutex.create ()
     ; continuations_lock = Mutex.create ()
     ; cnodes
     }
   in
-  let node_ctxt = { t; node = C start; children = [] } in
+  let node_ctxt = { t; node = C start; children = []; int_rsh = t.rsh } in
   t.continuations := [ node_ctxt ];
   t
 ;;
@@ -478,8 +479,9 @@ type step_result =
   | Exited
   | Forked of Sd_node.child_t * Sd_node.child_t
 
-let thread_exit ctxt =
+let thread_exit ctxt result_rsh_ref =
   List.iter ctxt.children ~f:Thread.join;
+  result_rsh_ref := ctxt.int_rsh;
   Thread.exit ();
   raise (Failure "General_model thread failed to exit")
 ;;
@@ -490,32 +492,34 @@ let thread_exit ctxt =
 let step ctxt ~safety =
   (* must do this only once in any execution to stop inconsistency *)
   let (P { node; next }) = to_cnode ctxt.t.cnodes ctxt.node in
-  match node.info, next with
-  | Exit, () -> Exited
-  | Tick, node ->
-    (* *)
-    Tick_block node
-  | Fork, (node, node_forked) -> Forked (node, node_forked)
-  | Est est, node ->
-    let new_rs = Sd_est.execute est ~safety !(ctxt.t.rsh) in
-    Mutex.lock ctxt.t.rsh_lock;
-    ctxt.t.rsh := Rsh.use !(ctxt.t.rsh) new_rs;
-    Mutex.unlock ctxt.t.rsh_lock;
-    On node
-  | Desc logic, (t_true, t_false) ->
-    On (if Sd_lang.execute logic !(ctxt.t.rsh) then t_true else t_false)
-  | Waitpid _, _ -> raise_s (String.sexp_of_t "Waitpid unimplemented")
+  let int_rsh, step_result =
+    match node.info, next with
+    | Exit, () -> ctxt.int_rsh, Exited
+    | Tick, node ->
+      (* *)
+      ctxt.int_rsh, Tick_block node
+    | Fork, (node, node_forked) -> ctxt.int_rsh, Forked (node, node_forked)
+    | Est est, node ->
+      let new_rs = Sd_est.execute est ~safety ctxt.int_rsh in
+      let new_rsh = Rsh.use ctxt.int_rsh new_rs in
+      new_rsh, On node
+    | Desc logic, (t_true, t_false) ->
+      ctxt.int_rsh, On (if Sd_lang.execute logic ctxt.int_rsh then t_true else t_false)
+    | Waitpid _, _ -> raise_s (String.sexp_of_t "Waitpid unimplemented")
+  in
+  { ctxt with int_rsh }, step_result
 ;;
 
-let rec run_thread_tick ctxt ~safety =
-  let run_thread_tick = run_thread_tick ~safety in
-  match step ctxt ~safety with
+let rec run_thread_tick ctxt result_rsh_ref ~safety =
+  let run_thread_tick ctxt = run_thread_tick ctxt result_rsh_ref ~safety in
+  let ctxt, step_result = step ctxt ~safety in
+  match step_result with
   | On node -> run_thread_tick { ctxt with node }
   | Tick_block node ->
     Mutex.lock ctxt.t.continuations_lock;
     ctxt.t.continuations := { ctxt with node } :: !(ctxt.t.continuations);
     Mutex.unlock ctxt.t.continuations_lock;
-    thread_exit ctxt
+    thread_exit ctxt result_rsh_ref
   | Exited -> thread_exit ctxt
   | Forked (node, forked_node) ->
     let t =
@@ -538,8 +542,7 @@ let run_tick t ~safety =
         Thread.create ~on_uncaught_exn:`Print_to_stderr (run_thread_tick ~safety) ctxt)
   in
   List.iter threads ~f:Thread.join;
-  t.rsh := Rsh.add_empty_state !(t.rsh);
-  t
+  { t with rsh = Rsh.add_empty_state t.rsh }
 ;;
 
 let rec run t ~safety ~num_ticks =
@@ -548,4 +551,4 @@ let rec run t ~safety ~num_ticks =
   | _ -> run (run_tick t ~safety) ~safety ~num_ticks:(num_ticks - 1)
 ;;
 
-let rsh t = !(t.rsh)
+let rsh t = t.rsh
