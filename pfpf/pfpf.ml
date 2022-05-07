@@ -1,7 +1,7 @@
 open! Core
 open! Sd_logic
 open! Sensors
-open! Sd_lang
+open! Sd_func
 
 let print_error =
   let logic =

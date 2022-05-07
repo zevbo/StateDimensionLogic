@@ -1,5 +1,5 @@
 open! Sd_logic
-open! Sd_lang
+open! Sd_func
 open! Core
 
 type t =

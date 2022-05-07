@@ -1,12 +1,12 @@
 open Core_kernel
 
 type t =
-  { logic : Robot_state.t Sd_lang.t
+  { logic : Robot_state.t Sd_func.t
   ; sds_estimating : Set.M(Sd.Packed).t
   }
 
-val create_set : Robot_state.t Sd_lang.t -> Set.M(Sd.Packed).t -> t
-val create : Robot_state.t Sd_lang.t -> Sd.Packed.t list -> t
+val create_set : Robot_state.t Sd_func.t -> Set.M(Sd.Packed).t -> t
+val create : Robot_state.t Sd_func.t -> Sd.Packed.t list -> t
 
 type safety
 

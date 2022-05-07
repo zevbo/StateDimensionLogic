@@ -1,6 +1,6 @@
 open Core
 open Sd_logic
-open Sd_lang
+open Sd_func
 
 let logic =
   let+ x = sd_past Sds.x 1 (V 0.0)

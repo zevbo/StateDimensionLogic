@@ -27,7 +27,18 @@ val ( and+ ) : 'a t -> 'b t -> ('a * 'b) t
 val return : 'a -> 'a t
 val sd : 'a Sd.t -> 'a t
 val sd_past : 'a Sd.t -> int -> ('a, 'b) default -> 'b t
+
+(* returned function is effectively find *)
 val sd_history : 'a Sd.t -> int -> (int -> 'a option) t
+
+(* gets the entire current state *)
 val state : (Sd.Packed.t, Sd.Packed.comparator_witness) Set.t -> Rs.t t
+
+(* gets an entire previous state *)
 val state_past : (Sd.Packed.t, Sd.Packed.comparator_witness) Set.t -> int -> Rs.t t
+
+(* gets the entire state history *)
 val full_rsh : unit -> Rsh.t t
+
+(* Applies another function to the given state history, outputs the result *)
+val sd_func : 'a t -> 'a t

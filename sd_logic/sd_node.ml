@@ -10,7 +10,7 @@ type (_, _) info =
   | Tick : ([ `Tick ], child_t) info
   | Fork : ([ `Fork ], child_t * child_t) info (* first t is next, second is forked *)
   | Est : Sd_est.t -> ([ `Est ], child_t) info
-  | Desc : bool Sd_lang.t -> ([ `Desc ], child_t * child_t) info
+  | Desc : bool Sd_func.t -> ([ `Desc ], child_t * child_t) info
   | Waitpid : ([ `Fork ], child_t * child_t) t -> ([ `Waitpid ], child_t) info
 
 and ('a, 'b) t =

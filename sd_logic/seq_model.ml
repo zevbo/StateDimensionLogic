@@ -36,7 +36,7 @@ type t =
   { nodes : Sd_est.t list
   ; safety : safety
   ; rsh : Rsh.t
-  ; end_cond : bool Sd_lang.t option
+  ; end_cond : bool Sd_func.t option
   }
 
 let rsh t = t.rsh
@@ -67,7 +67,7 @@ let current_check (t : t) =
   List.fold_until
     ~init:(Set.empty (module Sd.Packed))
     ~f:(fun guaranteed node ->
-      let required, estimating = Sd_lang.curr_req node.logic, node.sds_estimating in
+      let required, estimating = Sd_func.curr_req node.logic, node.sds_estimating in
       let premature_sd = Set.find required ~f:(fun sd -> not (Set.mem guaranteed sd)) in
       let overwritten_sd = Set.find estimating ~f:(Set.mem guaranteed) in
       match premature_sd, overwritten_sd with
@@ -87,11 +87,11 @@ let past_check t =
       ~f:(fun full_estimating node -> Set.union full_estimating node.sds_estimating)
   in
   let non_guranteed set = Set.find set ~f:(fun sd -> not (Set.mem full_estimating sd)) in
-  let all_deps = List.map t.nodes ~f:(fun node -> Sd_lang.dependencies node.logic) in
+  let all_deps = List.map t.nodes ~f:(fun node -> Sd_func.dependencies node.logic) in
   let all_deps =
     match t.end_cond with
     | None -> all_deps
-    | Some end_cond -> Sd_lang.dependencies end_cond :: all_deps
+    | Some end_cond -> Sd_func.dependencies end_cond :: all_deps
   in
   match List.find_map all_deps ~f:(fun deps -> non_guranteed (Map.key_set deps)) with
   | None -> Passed
@@ -113,13 +113,13 @@ let sd_lengths (nodes : Sd_est.t list) =
       ~f:(fun sd_lengths node ->
         Map.merge_skewed
           sd_lengths
-          (Sd_lang.dependencies node.logic)
+          (Sd_func.dependencies node.logic)
           ~combine:(fun ~key:_key -> Int.max))
   in
   Map.map max_indecies ~f:(fun n -> n + 1)
 ;;
 
-let create ?(safety = create_safety ()) ?(end_cond : bool Sd_lang.t Option.t) nodes =
+let create ?(safety = create_safety ()) ?(end_cond : bool Sd_func.t Option.t) nodes =
   let sd_lengths = sd_lengths nodes in
   let model = { safety; nodes; rsh = Rsh.create ~sd_lengths (); end_cond } in
   let exec_failure safety_level exc warning sd =
@@ -159,7 +159,7 @@ let rec run_checked ?(no_end_cond = false) ?(min_ms = 0.0) ?(max_ticks = 0) t =
     &&
     match t.end_cond with
     | None -> false
-    | Some end_cond -> Sd_lang.execute end_cond t.rsh
+    | Some end_cond -> Sd_func.execute end_cond t.rsh
   in
   if to_end || max_ticks = 1
   then ()

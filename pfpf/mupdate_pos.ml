@@ -1,6 +1,6 @@
 open! Core
 open! Sd_logic
-open! Sd_lang
+open! Sd_func
 
 let mpos_sd = Sd.create "mpos" Vec.sexp_of_t
 let mangle_sd = Sd.create "mangle" Float.sexp_of_t

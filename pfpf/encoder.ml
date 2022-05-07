@@ -1,6 +1,6 @@
 open! Core
 open Sd_logic
-open Sd_lang
+open Sd_func
 
 type t =
   { error : float

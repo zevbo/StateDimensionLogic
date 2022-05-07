@@ -1,7 +1,7 @@
 open! Core
 
 type t =
-  { logic : Robot_state.t Sd_lang.t
+  { logic : Robot_state.t Sd_func.t
   ; sds_estimating : Set.M(Sd.Packed).t
   }
 
@@ -33,7 +33,7 @@ exception Missing_sd of Sd.Packed.t [@@deriving sexp]
 exception Extra_sd of Sd.Packed.t [@@deriving sexp]
 
 let execute ~safety t rsh =
-  let estimated_state = Sd_lang.execute t.logic rsh in
+  let estimated_state = Sd_func.execute t.logic rsh in
   let expected_keys = t.sds_estimating in
   (match safety.info.max_safety with
   | Unsafe -> ()

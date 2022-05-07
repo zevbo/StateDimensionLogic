@@ -96,10 +96,7 @@ type flow =
 
 let create_flow guaranteed possibility = { guaranteed; possibility }
 let empty_flow = create_flow (Set.empty (module Sd.Packed)) (Set.empty (module Sd.Packed))
-
-(*
 let set_union_skewed s1 s2 = Set.fold s1 ~init:s2 ~f:Set.add
-*)
 
 let acyclic_graph_flow g cnodes (start : Sd_node.child_t) =
   let g = remove_edges_from_ticks cnodes (Graph.rev g) in
@@ -244,6 +241,39 @@ let waitpid_check cnodes start =
   explore start { fork_stack = []; has_wait = false }
 ;;
 
+let _tick_flows cnodes all_nodes =
+  let explored = Hash_set.create (module Int) in
+  let rec explore on =
+    match to_cnode cnodes on with
+    | P { node; next } ->
+      if Hash_set.mem explored node.id
+      then Set.empty (module Sd.Packed)
+      else (
+        let curr_estimating =
+          match node.info with
+          | Est est -> est.sds_estimating
+          | _ -> Set.empty (module Sd.Packed)
+        in
+        match node.info with
+        | Tick -> curr_estimating
+        | _ ->
+          List.fold_left
+            (next_nodes node next)
+            ~init:curr_estimating
+            ~f:(fun estimating on -> set_union_skewed estimating (explore on)))
+  in
+  let ticks =
+    Set.filter all_nodes ~f:(fun id ->
+        match id_to_cnode cnodes id with
+        | P { node = { info = Tick; _ }; _ } -> true
+        | _ -> false)
+  in
+  Map.of_key_set ticks ~f:(fun id ->
+      explore
+        (match id_to_cnode cnodes id with
+        | P { node; _ } -> C node))
+;;
+
 let current_checks cnodes start =
   let g = to_graph cnodes in
   Graph.assert_safety g;
@@ -251,7 +281,7 @@ let current_checks cnodes start =
   List.iter scc_list ~f:(check_scc cnodes);
   let flows = acyclic_graph_flow g cnodes start in
   let verify_dep flow lang =
-    let dep = Sd_lang.curr_req lang in
+    let dep = Sd_func.curr_req lang in
     Set.iter dep ~f:(fun sd ->
         if not (Set.mem flow.guaranteed sd) then raise (Unsafe_curr_requirement sd))
   in
@@ -281,7 +311,7 @@ let _past_checks cnodes =
           ~f:(fun (full_req, full_est) id ->
             match id_to_child_node cnodes id with
             | C { info = Est est; _ } ->
-              ( Set.union full_req (Map.key_set (Sd_lang.dependencies est.logic))
+              ( Set.union full_req (Map.key_set (Sd_func.dependencies est.logic))
               , Set.union full_est est.sds_estimating )
             | _ -> full_req, full_est))
   in
@@ -290,26 +320,23 @@ let _past_checks cnodes =
 
 exception Infinite_loop
 
-let check_ends cnodes start =
-  let explored = Hash_set.create (module Int) in
-  let rec explore on =
-    match to_cnode cnodes on with
-    | P { node; next } ->
-      if Hash_set.mem explored node.id
-      then (
-        match node.info with
-        | Tick -> true
-        | _ -> false)
-      else (
-        Hash_set.add explored node.id;
-        match next_nodes node next with
-        | [] -> true
-        | l -> List.exists l ~f:explore)
-  in
-  if not (explore start) then raise Infinite_loop
+let check_loop cnodes =
+  let g = to_graph cnodes in
+  let g = remove_edges_from_ticks cnodes g in
+  let scc_graph = Graph.scc_list g in
+  if List.exists scc_graph ~f:(fun scc -> Set.length scc > 1) then raise Infinite_loop;
+  if Map.existsi (Graph.as_map g) ~f:(fun ~key ~data -> Set.mem data key)
+  then raise Infinite_loop
 ;;
 
 exception Possible_exponential_threading of Sd_node.child_t
+
+let map_searchi map ~f =
+  Map.fold map ~init:None ~f:(fun ~key ~data r ->
+      match r with
+      | None -> if f ~key ~data then Some (key, data) else None
+      | s -> s)
+;;
 
 let exponential_threads_check cnodes =
   let g = to_graph cnodes in
@@ -345,7 +372,12 @@ let exponential_threads_check cnodes =
                | P { node; _ } -> C node));
         count > 0
     in
-    ignore (explore next : bool)
+    let next_scc_id =
+      fst
+        (Option.value_exn
+           (map_searchi id_to_scc ~f:(fun ~key:_ ~data -> Set.mem data next)))
+    in
+    ignore (explore next_scc_id : bool)
   in
   Set.iter
     (Map.key_set (Graph.as_map g))
@@ -382,10 +414,10 @@ let connected_check cnodes start =
 
 let safety_checks cnodes start =
   connected_check cnodes start;
-  check_ends cnodes start;
   current_checks cnodes start;
   waitpid_check cnodes start;
-  exponential_threads_check cnodes
+  exponential_threads_check cnodes;
+  check_loop cnodes
 ;;
 
 let rec dependencies cnodes ?(explored = Set.empty (module Int)) (on : Sd_node.child_t) =
@@ -400,13 +432,13 @@ let rec dependencies cnodes ?(explored = Set.empty (module Int)) (on : Sd_node.c
       | Exit, () -> Map.empty (module Sd.Packed)
       | Tick, t -> dependencies t
       | Waitpid _, t -> dependencies t
-      | Fork, (t1, t2) -> Sd_lang.dependency_union (dependencies t1) (dependencies t2)
+      | Fork, (t1, t2) -> Sd_func.dependency_union (dependencies t1) (dependencies t2)
       | Est est, t ->
-        Sd_lang.dependency_union (Sd_lang.dependencies est.logic) (dependencies t)
+        Sd_func.dependency_union (Sd_func.dependencies est.logic) (dependencies t)
       | Desc logic, (t_true, t_false) ->
-        Sd_lang.dependency_union
-          (Sd_lang.dependencies logic)
-          (Sd_lang.dependency_union (dependencies t_true) (dependencies t_false)))
+        Sd_func.dependency_union
+          (Sd_func.dependencies logic)
+          (Sd_func.dependency_union (dependencies t_true) (dependencies t_false)))
 ;;
 
 let assert_all_nodes_known (connections : Sd_node.conn list) cnodes =
@@ -504,7 +536,7 @@ let step ctxt ~safety =
       let new_rsh = Rsh.use ctxt.int_rsh new_rs in
       new_rsh, On node
     | Desc logic, (t_true, t_false) ->
-      ctxt.int_rsh, On (if Sd_lang.execute logic ctxt.int_rsh then t_true else t_false)
+      ctxt.int_rsh, On (if Sd_func.execute logic ctxt.int_rsh then t_true else t_false)
     | Waitpid _, _ -> raise_s (String.sexp_of_t "Waitpid unimplemented")
   in
   { ctxt with int_rsh }, step_result
@@ -527,6 +559,7 @@ let rec run_thread_tick result_rsh_ref ctxt ~safety : unit =
       Thread.create
         ~on_uncaught_exn:`Kill_whole_process
         run_thread_tick
+        (* zTODO: these now overwrite each others rsh_ref: make rsh_ref a list *)
         { ctxt with node = forked_node }
     in
     run_thread_tick { ctxt with node; children = t :: ctxt.children }

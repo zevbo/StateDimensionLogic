@@ -12,7 +12,7 @@ not mentioned in [sd_lengths] is the maximum of [min_default_lengths] and the la
 
 [?forced_default_length] allows you to use a default length that is smaller than some in [~sd_lengths], at the cost of runtime. 
 The time complexity for [use] with a state that has m bindings to a t with n states and k entries in sd_lengths
-goes from [O(log(n))] to [O(log(n) + mlog(k))]. Also, the size of sd_lengths will have an entry for each
+goes from [O(log(n))] to [O(log(n) + mlog(k))]. Also, the size of [~sd_lengths] will have an entry for each
 Sd.t that has a binding in an Rs.t that is added to the t at anytime.
 *)
 val create

@@ -1,6 +1,6 @@
 open! Sd_logic
 open! General_model_example
-open Sd_lang
+open Sd_func
 
 module Commons = struct
   include Robot_state_tests.Commons
@@ -65,7 +65,7 @@ let%test "okay1" =
       [ Conn (tick1, C est)
       ; Conn (est, C est2)
       ; Conn (est2, C nothing_desc)
-      ; Conn (nothing_desc, (C est2, C tick1))
+      ; Conn (nothing_desc, (C Sd_node.exit, C tick1))
       ]
       tick1
   in
@@ -103,24 +103,32 @@ let%test "exponential2" =
 
 let%test "infinite-loop" =
   try
-    let _r = Gm.create [ Conn (tick1, C est); Conn (est, C est) ] tick1 in
+    let _r =
+      Gm.create
+        [ Conn (tick1, C nothing_est1); Conn (nothing_est1, C nothing_est1) ]
+        tick1
+    in
     false
   with
   | Gm.Infinite_loop -> true
-  | _ -> false
+  | e -> raise e
 ;;
 
 let%test "infinite-loop2" =
   try
     let _r =
       Gm.create
-        [ Conn (tick1, C fork); Conn (fork, (C est, C fork)); Conn (est, C fork) ]
+        [ Conn (tick1, C nothing_desc)
+        ; Conn (nothing_desc, (C nothing_est1, C nothing_est2))
+        ; Conn (nothing_est2, C nothing_desc)
+        ; Conn (nothing_est1, C tick1)
+        ]
         tick1
     in
     false
   with
   | Gm.Infinite_loop -> true
-  | _ -> false
+  | e -> raise e
 ;;
 
 let%test "possible_overwrte" =
@@ -151,6 +159,7 @@ let%test "okay2" =
   true
 ;;
 
+(*
 let%test "okay3" =
   let _r =
     Gm.create
@@ -166,3 +175,4 @@ let%test "okay3" =
   in
   true
 ;;
+*)

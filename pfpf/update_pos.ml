@@ -1,6 +1,6 @@
 open! Core
 open! Sd_logic
-open! Sd_lang
+open! Sd_func
 open Specs
 
 let starting_pos = Vec.create 0. 0.

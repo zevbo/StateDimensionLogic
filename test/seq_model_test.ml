@@ -1,6 +1,6 @@
 open Sd_logic
 open Core
-open Sd_lang
+open Sd_func
 
 module Sds = struct
   let a = Sd.create "a" Float.sexp_of_t

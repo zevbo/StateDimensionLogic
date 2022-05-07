@@ -1,6 +1,6 @@
 open! Sd_logic
 open! Core
-open Sd_lang
+open Sd_func
 
 let logic =
   let+ () = return () in

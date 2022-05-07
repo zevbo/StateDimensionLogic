@@ -17,6 +17,7 @@ module T = struct
     | State : (Sd.Packed.t, Sd.Packed.comparator_witness) Set.t -> Rs.t t
     | State_past : (Sd.Packed.t, Sd.Packed.comparator_witness) Set.t * int -> Rs.t t
     | Full_rsh : unit -> Rsh.t t
+    | Sd_func : 'a t -> 'a t
 
   type packed = P : 'a t -> packed
 end
@@ -59,7 +60,8 @@ let rec dependencies_w_curr_p
     | Sd_past (sd, n, _default) -> dependency_w_curr_of_list [ Sd.pack sd, (n, n = 0) ]
     | Sd_history (sd, n) -> dependency_w_curr_of_list [ Sd.pack sd, (n, false) ]
     | State sd_set -> Map.of_key_set sd_set ~f:(fun _key -> 0, false)
-    | State_past (sd_set, i) -> Map.of_key_set sd_set ~f:(fun _key -> i, false))
+    | State_past (sd_set, i) -> Map.of_key_set sd_set ~f:(fun _key -> i, false)
+    | Sd_func other_func -> dependencies_w_curr_p (P other_func))
 ;;
 
 let dependencies t = Map.map (dependencies_w_curr_p (P t)) ~f:fst
@@ -100,6 +102,7 @@ let rec execute : 'a. 'a t -> Rsh.t -> 'a =
      | None -> Rs.empty
      | Some rs -> Rs.trim_to rs sd_set)
    | Full_rsh () -> rsh
+   | Sd_func other_func -> execute other_func rsh
 ;;
 
 let ( let+ ) a f = map a ~f
@@ -111,3 +114,4 @@ let sd_history x n = Sd_history (x, n)
 let state set = State set
 let state_past set n = State_past (set, n)
 let full_rsh () = Full_rsh ()
+let sd_func f = Sd_func f

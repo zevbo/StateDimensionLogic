@@ -1,6 +1,6 @@
 open! Core
 open! Sd_logic
-open Sd_lang
+open Sd_func
 
 type particle = Rsh.t
 
@@ -32,7 +32,7 @@ let get_id () =
 let create_est
     ~start
     ~(est : Sd_est.t)
-    ~(judge : float Sd_lang.t)
+    ~(judge : float Sd_func.t)
     ~(sds_estimating_and_info : est_and_info List.t)
     ~num_particles
   =
@@ -53,10 +53,10 @@ let create_est
     Sd.create (Printf.sprintf "particles_sd%i" id) (fun (_particles : weighted list) ->
         String.sexp_of_t "particles_sd has no meaninful sexp_of")
   in
-  let judge_dep = Map.key_set (Sd_lang.dependencies judge) in
+  let judge_dep = Map.key_set (Sd_func.dependencies judge) in
   let est_dep =
     Set.filter
-      (Map.key_set (Sd_lang.dependencies est.logic))
+      (Map.key_set (Sd_func.dependencies est.logic))
       ~f:(fun sd -> not (Set.mem est.sds_estimating sd))
   in
   (* TODO: check if estimator requires a current value for something it estiamtes *)
@@ -121,7 +121,7 @@ let create_est
     in
     let weighted_particles =
       List.map extras_added_particles ~f:(fun particle ->
-          { particle; weight = Float.max (Sd_lang.execute judge particle) 0.0 })
+          { particle; weight = Float.max (Sd_func.execute judge particle) 0.0 })
     in
     (* determine average value to find particle we want *)
     let avg_value (type a) (module F : Filterable with type t = a) (sd : a Sd.t) =
