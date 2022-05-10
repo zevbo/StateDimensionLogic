@@ -30,11 +30,11 @@ let get_id () =
 
 (* todo: automatically create start rsh *)
 let create_est
-    ~start
+    ~(start : Rsh.t)
     ~(est : Sd_est.t)
     ~(judge : float Sd_func.t)
     ~(sds_estimating_and_info : est_and_info List.t)
-    ~num_particles
+    ~(num_particles : int)
   =
   assert (num_particles > 0);
   (* we can only estimate summable SD. Currently only allowing floats but could allow any summable *)

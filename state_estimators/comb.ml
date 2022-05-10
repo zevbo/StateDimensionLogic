@@ -10,9 +10,9 @@ let combine ~switch (est1 : Sd_est.t) (est2 : Sd_est.t) =
   let logic =
     (* zTODO: need to make this lazy *)
     let+ (use_first : bool) = switch
-    and+ r1 = est1.logic
-    and+ r2 = est2.logic in
-    if use_first then r1 else r2
+    and+ r1 = lazy_sd_func est1.logic
+    and+ r2 = lazy_sd_func est2.logic in
+    if use_first then r1 () else r2 ()
   in
   Sd_est.create_set logic est1.sds_estimating
 ;;

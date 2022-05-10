@@ -40,5 +40,5 @@ val state_past : (Sd.Packed.t, Sd.Packed.comparator_witness) Set.t -> int -> Rs.
 (* gets the entire state history *)
 val full_rsh : unit -> Rsh.t t
 
-(* Applies another function to the given state history, outputs the result *)
-val sd_func : 'a t -> 'a t
+(* Allows you to apply another function to the given state history in a lazy manner *)
+val lazy_sd_func : 'a t -> (unit -> 'a) t
