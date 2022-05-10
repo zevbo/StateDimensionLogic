@@ -56,8 +56,8 @@ let end_cond =
   Float.(b > 1.0)
 ;;
 
-let check_error ?end_cond nodes pass_safety to_run =
-  let model_pass = Seq_model.create ~safety:pass_safety ?end_cond nodes in
+let check_error ?end_cond nodes to_run =
+  let model_pass = Seq_model.create ?end_cond nodes in
   if to_run then Seq_model.run ~max_ticks:1 model_pass;
   try
     let model = Seq_model.create nodes in
@@ -66,6 +66,7 @@ let check_error ?end_cond nodes pass_safety to_run =
   | e -> print_string (Exn.to_string e)
 ;;
 
+(*
 let%expect_test "premature_req" =
   check_error
     [ set_b_node; set_a_node ]
@@ -114,3 +115,4 @@ let%expect_test "missing_est" =
   check_error [ missing_set_b_node ] (Seq_model.create_safety ~node_safety ()) true;
   [%expect {| (sd_logic/sd_est.ml.Missing_sd b) |}]
 ;;
+*)

@@ -11,7 +11,7 @@ val create_safety
   -> safety
 
 (** safety defaults to maximum safety *)
-val create : ?safety:safety -> ?end_cond:bool Sd_func.t -> Sd_est.t list -> t
+val create : ?end_cond:bool Sd_func.t -> Sd_est.t list -> t
 
 val rsh : t -> Rsh.t
 

@@ -37,12 +37,13 @@ let create_est
     ~(num_particles : int)
   =
   assert (num_particles > 0);
-  (* we can only estimate summable SD. Currently only allowing floats but could allow any summable *)
+  (* we can only estimate summable SD *)
   let sds_estimating =
     List.map sds_estimating_and_info ~f:(fun (P (_, sd, _)) -> Sd.pack sd)
   in
   let unestimated_sd =
-    List.find sds_estimating ~f:(fun sd -> not (Set.mem est.sds_estimating sd))
+    List.find sds_estimating ~f:(fun sd ->
+        not (Set.mem (Sd_est.sds_estimating_set est) sd))
   in
   (match unestimated_sd with
   | None -> ()
@@ -57,7 +58,7 @@ let create_est
   let est_dep =
     Set.filter
       (Map.key_set (Sd_func.dependencies est.logic))
-      ~f:(fun sd -> not (Set.mem est.sds_estimating sd))
+      ~f:(fun sd -> not (Set.mem (Sd_est.sds_estimating_set est) sd))
   in
   (* TODO: check if estimator requires a current value for something it estiamtes *)
   let logic =

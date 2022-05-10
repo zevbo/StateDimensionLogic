@@ -34,6 +34,7 @@ let create_safety
 
 type t =
   { nodes : Sd_est.t list
+  ; last_change : int Map.M(Sd.Packed).t
   ; safety : safety
   ; rsh : Rsh.t
   ; end_cond : bool Sd_func.t option
@@ -43,11 +44,57 @@ let rsh t = t.rsh
 
 (* only keys with n = 1 *)
 let apply t =
-  List.fold_left t.nodes ~init:t.rsh ~f:(fun state_history node ->
-      let estimated_state =
-        Sd_est.execute ~safety:t.safety.node_safety node state_history
-      in
-      Robot_state_history.use state_history estimated_state)
+  let last_change, rsh =
+    List.fold_left
+      t.nodes
+      ~init:(t.last_change, t.rsh)
+      ~f:(fun (last_change, state_history) node ->
+        let rerun =
+          node.signal
+          || Rsh.length state_history = 1
+          || not
+               (Map.for_alli (Sd_func.dependencies node.logic) ~f:(fun ~key ~data ->
+                    data < Map.find_exn last_change key))
+        in
+        let estimated_state, last_change =
+          if rerun
+          then (
+            let est_state =
+              Sd_est.execute ~safety:t.safety.node_safety node state_history
+            in
+            let last_change =
+              match node.sds_estimating with
+              | Reg est ->
+                Set.fold est ~init:last_change ~f:(fun lc sd ->
+                    Map.set lc ~key:sd ~data:0)
+              | Reactive equal_sds_estimating ->
+                Set.fold
+                  equal_sds_estimating
+                  ~init:last_change
+                  ~f:(fun lc (E (sd, equal)) ->
+                    Map.set
+                      lc
+                      ~key:(P sd)
+                      ~data:
+                        (if match Rsh.find_past state_history 1 sd with
+                            | None -> false
+                            | Some v -> equal (Rs.find_exn est_state sd) v
+                        then 1 + Option.value (Map.find lc (P sd)) ~default:0
+                        else 0))
+            in
+            est_state, last_change)
+          else (
+            let est_set = Sd_est.sds_estimating_set node in
+            let last_change =
+              Set.fold est_set ~init:last_change ~f:(fun lc sd ->
+                  Map.set lc ~key:sd ~data:(1 + Option.value (Map.find lc sd) ~default:0))
+            in
+            ( Rs.trim_to (Option.value_exn (Rsh.nth_state state_history 1)) est_set
+            , last_change ))
+        in
+        last_change, Robot_state_history.use state_history estimated_state)
+  in
+  { t with rsh; last_change }
 ;;
 
 exception Premature_sd_req of Sd.Packed.t [@@deriving sexp]
@@ -67,7 +114,9 @@ let current_check (t : t) =
   List.fold_until
     ~init:(Set.empty (module Sd.Packed))
     ~f:(fun guaranteed node ->
-      let required, estimating = Sd_func.curr_req node.logic, node.sds_estimating in
+      let required, estimating =
+        Sd_func.curr_req node.logic, Sd_est.sds_estimating_set node
+      in
       let premature_sd = Set.find required ~f:(fun sd -> not (Set.mem guaranteed sd)) in
       let overwritten_sd = Set.find estimating ~f:(Set.mem guaranteed) in
       match premature_sd, overwritten_sd with
@@ -84,7 +133,8 @@ let past_check t =
     List.fold_left
       t.nodes
       ~init:(Set.empty (module Sd.Packed)) (* zTODO: fix to better Set.union *)
-      ~f:(fun full_estimating node -> Set.union full_estimating node.sds_estimating)
+      ~f:(fun full_estimating node ->
+        Set.union full_estimating (Sd_est.sds_estimating_set node))
   in
   let non_guranteed set = Set.find set ~f:(fun sd -> not (Set.mem full_estimating sd)) in
   let all_deps = List.map t.nodes ~f:(fun node -> Sd_func.dependencies node.logic) in
@@ -114,14 +164,22 @@ let sd_lengths (nodes : Sd_est.t list) =
         Map.merge_skewed
           sd_lengths
           (Sd_func.dependencies node.logic)
-          ~combine:(fun ~key:_key -> Int.max))
+          ~combine:(fun ~key:_key v1 v2 -> 1 + Int.max v1 v2))
   in
   Map.map max_indecies ~f:(fun n -> n + 1)
 ;;
 
-let create ?(safety = create_safety ()) ?(end_cond : bool Sd_func.t Option.t) nodes =
+let create ?(end_cond : bool Sd_func.t Option.t) nodes =
   let sd_lengths = sd_lengths nodes in
-  let model = { safety; nodes; rsh = Rsh.create ~sd_lengths (); end_cond } in
+  let safety = create_safety () in
+  let model =
+    { safety
+    ; last_change = Map.empty (module Sd.Packed)
+    ; nodes
+    ; rsh = Rsh.create ~sd_lengths ()
+    ; end_cond
+    }
+  in
   let exec_failure safety_level exc warning sd =
     match safety_level with
     | Safety_level.Unsafe -> ()
@@ -149,11 +207,14 @@ let create ?(safety = create_safety ()) ?(end_cond : bool Sd_func.t Option.t) no
   model
 ;;
 
-let tick t = { t with rsh = Rsh.add_empty_state (apply t) }
+let tick t =
+  let t = apply t in
+  { t with rsh = Rsh.add_empty_state t.rsh }
+;;
 
 let rec run_checked ?(no_end_cond = false) ?(min_ms = 0.0) ?(max_ticks = 0) t =
   let desired_time = Unix.time () +. (min_ms /. 1000.0) in
-  let t = { t with rsh = apply t } in
+  let t = apply t in
   let to_end =
     (not no_end_cond)
     &&

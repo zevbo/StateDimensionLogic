@@ -112,7 +112,7 @@ let acyclic_graph_flow g cnodes (start : Sd_node.child_t) =
       match id_to_cnode cnodes id with
       | P { node; next = _ } ->
         (match node.info with
-        | Est est -> est.sds_estimating
+        | Est est -> Sd_est.sds_estimating_set est
         | _ -> Set.empty (module Sd.Packed)))
     else Set.empty (module Sd.Packed)
   in
@@ -182,7 +182,8 @@ let check_scc cnodes scc =
     Set.iter scc ~f:(fun id ->
         match id_to_cnode cnodes id with
         | P { node = { info = Est est; _ }; _ } ->
-          Set.iter est.sds_estimating ~f:(fun sd -> raise (Possible_overwrite sd))
+          Set.iter (Sd_est.sds_estimating_set est) ~f:(fun sd ->
+              raise (Possible_overwrite sd))
         | _ -> ())
 ;;
 
@@ -251,7 +252,7 @@ let _tick_flows cnodes all_nodes =
       else (
         let curr_estimating =
           match node.info with
-          | Est est -> est.sds_estimating
+          | Est est -> Sd_est.sds_estimating_set est
           | _ -> Set.empty (module Sd.Packed)
         in
         match node.info with
@@ -292,7 +293,7 @@ let current_checks cnodes start =
         | Exit | Tick | Fork | Waitpid _ -> ()
         | Est est ->
           verify_dep flow est.logic;
-          Set.iter est.sds_estimating ~f:(fun sd ->
+          Set.iter (Sd_est.sds_estimating_set est) ~f:(fun sd ->
               if Set.mem flow.guaranteed sd
               then raise (Expected_overwrite sd)
               else if Set.mem flow.possibility sd
@@ -312,7 +313,7 @@ let _past_checks cnodes =
             match id_to_child_node cnodes id with
             | C { info = Est est; _ } ->
               ( Set.union full_req (Map.key_set (Sd_func.dependencies est.logic))
-              , Set.union full_est est.sds_estimating )
+              , Set.union full_est (Sd_est.sds_estimating_set est) )
             | _ -> full_req, full_est))
   in
   ()
