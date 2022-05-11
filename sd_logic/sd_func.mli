@@ -3,11 +3,8 @@ include Applicative.S
 
 type ('a, _) default =
   | V : 'a -> ('a, 'a) default (* in case of too few states, return associated value of type 'a *)
-  | Last : ('a, 'a) default (* in case of too few states, use the oldest state *)
-  | Safe_last : ('a, 'a option) default (* like last, except in case of too few states and only current state exists, use None *)
-  | Unsafe : ('a, 'a) default
+  | Safe_last : ('a, 'a option) default (* in case of too few states, use the oldest state. in case of too few states and only current state exists, use None *)
   | Op : ('a, 'a option) default
-(* in case of too few states, fail *)
 
 exception Sd_not_found of (Sd.Packed.t * int) [@@deriving sexp]
 

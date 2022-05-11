@@ -16,7 +16,7 @@ let est_logic =
   Rs.set Rs.empty Commons.a (a +. 1.0)
 ;;
 
-let est = Sd_node.estl est_logic [ Sd.pack Commons.a ]
+let est = Sd_node.estl est_logic [ Sd_est.sd Commons.a ]
 
 let est2_logic =
   let+ _a = sd Commons.a in

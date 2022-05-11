@@ -42,4 +42,4 @@ let update_logic t =
   Rs.set Rs.empty t.gps_pos_sd gps_pos
 ;;
 
-let est t = Sd_est.create (update_logic t) [ Sd.pack t.gps_pos_sd ]
+let est t = Sd_est.create (update_logic t) [ Sd_est.sd t.gps_pos_sd ]

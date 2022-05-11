@@ -2,45 +2,45 @@ open! Core
 
 module Equal_sd = struct
   module T = struct
-    type t = E : ('a Sd.t * ('a -> 'a -> bool)) -> t
+    type t =
+      | Eq : ('a Sd.t * ('a -> 'a -> bool)) -> t
+      | Reg : 'a Sd.t -> t
 
-    let sexp_of_t (E (a, _)) = Sd.Packed.sexp_of_t (P a)
-    let compare (E (a, _)) (E (b, _)) = Sd.Packed.compare (P a) (P b)
-    let create sd eq = E (sd, eq)
+    let packed_sd t =
+      match t with
+      | Eq (sd, _) -> Sd.pack sd
+      | Reg sd -> Sd.pack sd
+    ;;
+
+    let sexp_of_t t = Sd.Packed.sexp_of_t (packed_sd t)
+    let compare t1 t2 = Sd.Packed.compare (packed_sd t1) (packed_sd t2)
   end
 
   include T
   include Comparator.Make (T)
 end
 
-type sds_estimating =
-  | Reg of Set.M(Sd.Packed).t
-  | Reactive of Set.M(Equal_sd).t
+module E = Equal_sd
+
+let sd sd_ = E.Reg sd_
+let eq_sd sd f = E.Eq (sd, f)
 
 type t =
   { logic : Robot_state.t Sd_func.t
-  ; sds_estimating : sds_estimating
-  ; signal : bool
+  ; sds_estimating : Set.M(Equal_sd).t
+  ; is_prim : bool
   }
 
-let sds_estimating_set t =
-  match t.sds_estimating with
-  | Reg set -> set
-  | Reactive equal_set -> Set.map (module Sd.Packed) equal_set ~f:(fun (E (a, _)) -> P a)
+let sds_estimating_set t = Set.map (module Sd.Packed) t.sds_estimating ~f:E.packed_sd
+
+let create_set ?(unstable = true) logic sds_estimating =
+  { logic; sds_estimating; is_prim = unstable }
 ;;
 
-let create_set ?(signal = true) logic sds_estimating =
-  { logic; sds_estimating = Reg sds_estimating; signal }
-;;
-
-let create ?(signal = true) logic sds_estimatingl =
-  { logic; sds_estimating = Reg (Set.of_list (module Sd.Packed) sds_estimatingl); signal }
-;;
-
-let create_reactive logic equal_sds_estimating ~signal =
+let create ?(unstable = true) logic sds_estimatingl =
   { logic
-  ; sds_estimating = Reactive (Set.of_list (module Equal_sd) equal_sds_estimating)
-  ; signal
+  ; sds_estimating = Set.of_list (module Equal_sd) sds_estimatingl
+  ; is_prim = unstable
   }
 ;;
 

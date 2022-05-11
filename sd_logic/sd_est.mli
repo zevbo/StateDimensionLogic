@@ -1,27 +1,24 @@
 open Core_kernel
 
-module Equal_sd : sig
-  type t = E : ('a Sd.t * ('a -> 'a -> bool)) -> t
-
-  val create : 'a Sd.t -> ('a -> 'a -> bool) -> t
+module E : sig
+  type t =
+    | Eq : ('a Sd.t * ('a -> 'a -> bool)) -> t
+    | Reg : 'a Sd.t -> t
 
   type comparator_witness
 end
 
-type sds_estimating =
-  | Reg of Set.M(Sd.Packed).t
-  | Reactive of Set.M(Equal_sd).t
-
 type t =
   { logic : Robot_state.t Sd_func.t
-  ; sds_estimating : sds_estimating
-  ; signal : bool
+  ; sds_estimating : Set.M(E).t
+  ; is_prim : bool
   }
 
-val create_set : ?signal:bool -> Robot_state.t Sd_func.t -> Set.M(Sd.Packed).t -> t
-val create : ?signal:bool -> Robot_state.t Sd_func.t -> Sd.Packed.t list -> t
-val create_reactive : Robot_state.t Sd_func.t -> Equal_sd.t list -> signal:bool -> t
+val create_set : ?unstable:bool -> Robot_state.t Sd_func.t -> Set.M(E).t -> t
+val create : ?unstable:bool -> Robot_state.t Sd_func.t -> E.t list -> t
 val sds_estimating_set : t -> Set.M(Sd.Packed).t
+val sd : 'a Sd.t -> E.t
+val eq_sd : 'a Sd.t -> ('a -> 'a -> bool) -> E.t
 
 type safety
 

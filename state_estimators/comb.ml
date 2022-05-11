@@ -13,5 +13,5 @@ let combine ~switch (est1 : Sd_est.t) (est2 : Sd_est.t) =
     and+ r2 = lazy_sd_func est2.logic in
     if use_first then r1 () else r2 ()
   in
-  Sd_est.create_set logic (Sd_est.sds_estimating_set est1)
+  Sd_est.create_set logic est1.sds_estimating
 ;;

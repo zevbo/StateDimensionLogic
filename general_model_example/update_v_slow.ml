@@ -9,4 +9,4 @@ let logic =
   Rs.set Rs.empty Sds.v (Float.max (v -. 0.5) 0.0)
 ;;
 
-let node = Sd_node.est (Sd_est.create logic [ Sd.pack Sds.v ])
+let node = Sd_node.est (Sd_est.create logic [ Sd_est.sd Sds.v ])

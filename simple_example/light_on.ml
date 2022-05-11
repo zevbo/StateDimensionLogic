@@ -8,9 +8,4 @@ let logic =
   Rs.set Rs.empty Sds.light_on Float.(x > 50.0)
 ;;
 
-let est =
-  Sd_est.create_reactive
-    logic
-    [ Sd_est.Equal_sd.E (Sds.light_on, Bool.equal) ]
-    ~signal:false
-;;
+let est = Sd_est.create logic [ Sd_est.eq_sd Sds.light_on Bool.equal ] ~unstable:false

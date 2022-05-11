@@ -10,4 +10,4 @@ let logic =
   Rs.empty
 ;;
 
-let est = Sd_est.create ~signal:false logic []
+let est = Sd_est.create ~unstable:false logic []

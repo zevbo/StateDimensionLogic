@@ -19,7 +19,7 @@ let update_omega_est =
     let rs = Rs.set rs State_sds.romega (update_omega romega rinput) in
     rs
   in
-  Sd_est.create logic [ Sd.pack State_sds.lomega; Sd.pack State_sds.romega ]
+  Sd_est.create logic [ Sd_est.sd State_sds.lomega; Sd_est.sd State_sds.romega ]
 ;;
 
 let update_pos_logic =

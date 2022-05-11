@@ -27,4 +27,4 @@ let logic t =
   Rs.set Rs.empty t.angle_sd imu_angle
 ;;
 
-let est t = Sd_est.create (logic t) [ Sd.pack t.angle_sd ]
+let est t = Sd_est.create (logic t) [ Sd_est.sd t.angle_sd ]

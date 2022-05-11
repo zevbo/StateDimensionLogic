@@ -34,4 +34,4 @@ let logic =
   Rs.set rs mangle_sd (prev_angle +. angle_diff)
 ;;
 
-let est = Sd_est.create logic [ Sd.pack mpos_sd; Sd.pack mangle_sd ]
+let est = Sd_est.create logic [ Sd_est.sd mpos_sd; Sd_est.sd mangle_sd ]

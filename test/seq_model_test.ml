@@ -43,13 +43,13 @@ let missing_set_b_logic =
   Rs.empty
 ;;
 
-let set_a_node = Sd_est.create set_a_logic [ Sd.pack Sds.a ]
-let bad_set_a = Sd_est.create bad_set_a_logic [ Sd.pack Sds.a ]
-let set_b_node = Sd_est.create set_b_logic [ Sd.pack Sds.b ]
-let set_b_node2 = Sd_est.create set_b_logic [ Sd.pack Sds.b ]
+let set_a_node = Sd_est.create set_a_logic [ Sd_est.sd Sds.a ]
+let bad_set_a = Sd_est.create bad_set_a_logic [ Sd_est.sd Sds.a ]
+let set_b_node = Sd_est.create set_b_logic [ Sd_est.sd Sds.b ]
+let set_b_node2 = Sd_est.create set_b_logic [ Sd_est.sd Sds.b ]
 let bad_node = Sd_est.create bad_logic []
-let extra_set_b_node = Sd_est.create extra_set_b_logic [ Sd.pack Sds.b ]
-let missing_set_b_node = Sd_est.create missing_set_b_logic [ Sd.pack Sds.b ]
+let extra_set_b_node = Sd_est.create extra_set_b_logic [ Sd_est.sd Sds.b ]
+let missing_set_b_node = Sd_est.create missing_set_b_logic [ Sd_est.sd Sds.b ]
 
 let end_cond =
   let+ b = sd Sds.b in

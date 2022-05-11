@@ -8,4 +8,4 @@ let logic =
   Rs.set Rs.empty Sds.x (x +. v)
 ;;
 
-let est = Sd_est.create logic [ Sd.pack Sds.x ]
+let est = Sd_est.create logic [ Sd_est.sd Sds.x ]

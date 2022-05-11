@@ -17,4 +17,4 @@ let update_logic t =
   Rs.set Rs.empty t.pos_sd (real_pos +. Random.float_range (-1.0 *. t.error) t.error)
 ;;
 
-let est t = Sd_est.create (update_logic t) [ Sd.pack t.pos_sd ]
+let est t = Sd_est.create (update_logic t) [ Sd_est.sd t.pos_sd ]

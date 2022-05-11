@@ -8,4 +8,4 @@ let logic =
   Rs.set Rs.empty Sds.v (v +. diff)
 ;;
 
-let est = Sd_est.create logic [ Sd.pack Sds.v ]
+let est = Sd_est.create logic [ Sd_est.sd Sds.v ]

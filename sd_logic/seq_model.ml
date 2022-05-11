@@ -50,47 +50,48 @@ let apply t =
       ~init:(t.last_change, t.rsh)
       ~f:(fun (last_change, state_history) node ->
         let rerun =
-          node.signal
+          node.is_prim
           || Rsh.length state_history = 1
           || not
                (Map.for_alli (Sd_func.dependencies node.logic) ~f:(fun ~key ~data ->
                     data < Map.find_exn last_change key))
         in
-        let estimated_state, last_change =
+        let est_set = Sd_est.sds_estimating_set node in
+        let estimated_state, changes =
           if rerun
           then (
             let est_state =
               Sd_est.execute ~safety:t.safety.node_safety node state_history
             in
-            let last_change =
-              match node.sds_estimating with
-              | Reg est ->
-                Set.fold est ~init:last_change ~f:(fun lc sd ->
-                    Map.set lc ~key:sd ~data:0)
-              | Reactive equal_sds_estimating ->
-                Set.fold
-                  equal_sds_estimating
-                  ~init:last_change
-                  ~f:(fun lc (E (sd, equal)) ->
-                    Map.set
-                      lc
-                      ~key:(P sd)
-                      ~data:
-                        (if match Rsh.find_past state_history 1 sd with
-                            | None -> false
-                            | Some v -> equal (Rs.find_exn est_state sd) v
-                        then 1 + Option.value (Map.find lc (P sd)) ~default:0
-                        else 0))
+            let changes =
+              Set.filter_map
+                (module Sd.Packed)
+                node.sds_estimating
+                ~f:(fun sds_estimating ->
+                  match sds_estimating with
+                  | Reg sd -> Some (Sd.pack sd)
+                  | Eq (sd, equal) ->
+                    (match Rsh.find_past state_history 1 sd with
+                    | None -> Some (Sd.pack sd)
+                    | Some v ->
+                      if equal (Rs.find_exn est_state sd) v
+                      then None
+                      else Some (Sd.pack sd)))
             in
-            est_state, last_change)
-          else (
-            let est_set = Sd_est.sds_estimating_set node in
-            let last_change =
-              Set.fold est_set ~init:last_change ~f:(fun lc sd ->
-                  Map.set lc ~key:sd ~data:(1 + Option.value (Map.find lc sd) ~default:0))
-            in
+            est_state, changes)
+          else
             ( Rs.trim_to (Option.value_exn (Rsh.nth_state state_history 1)) est_set
-            , last_change ))
+            , Set.empty (module Sd.Packed) )
+        in
+        let last_change =
+          Set.fold est_set ~init:last_change ~f:(fun lc sd ->
+              Map.set
+                lc
+                ~key:sd
+                ~data:
+                  (if Set.mem changes sd
+                  then 0
+                  else 1 + Option.value (Map.find lc sd) ~default:0))
         in
         last_change, Robot_state_history.use state_history estimated_state)
   in

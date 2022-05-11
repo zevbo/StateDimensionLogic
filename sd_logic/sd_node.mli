@@ -28,7 +28,7 @@ val fork_and_waitpid
   -> ([ `Fork ], child_t * child_t) t * ([ `Waitpid ], child_t) t
 
 val est : Sd_est.t -> ([ `Est ], child_t) t
-val estl : Rs.t Sd_func.t -> Sd.Packed.t list -> ([ `Est ], child_t) t
+val estl : Rs.t Sd_func.t -> Sd_est.E.t list -> ([ `Est ], child_t) t
 val desc : bool Sd_func.t -> ([ `Desc ], child_t * child_t) t
 val compare : ('a1, 'a2) t -> ('b1, 'b2) t -> int
 val hash : ('a, 'b) t -> int

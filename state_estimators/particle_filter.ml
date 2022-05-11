@@ -134,5 +134,7 @@ let create_est
     in
     Rs.set rs particles_sd weighted_particles
   in
-  Sd_est.create logic (Sd.pack particles_sd :: sds_estimating)
+  Sd_est.create
+    logic
+    (List.map (Sd.pack particles_sd :: sds_estimating) ~f:(fun (P sd) -> Sd_est.sd sd))
 ;;

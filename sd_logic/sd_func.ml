@@ -3,9 +3,7 @@ open! Core
 module T = struct
   type ('a, _) default =
     | V : 'a -> ('a, 'a) default (* in case of too few states, return associated value of type 'a *)
-    | Last : ('a, 'a) default (* in case of too few states, use the oldest state *)
-    | Safe_last : ('a, 'a option) default (* like last, except in case of too few states and only current state exists, use None *)
-    | Unsafe : ('a, 'a) default
+    | Safe_last : ('a, 'a option) default (* in case of too few states, use the oldest state. in case of too few states and only current state exists, use None *)
     | Op : ('a, 'a option) default
 
   type _ t =
@@ -85,15 +83,9 @@ let rec execute : 'a. 'a t -> Rsh.t -> 'a =
        then default
        else Option.value (Rsh.find_past rsh n sd) ~default
      | Safe_last ->
-       if n > 0 && Rsh.length rsh <= 1
-       then None
-       else Some (execute (Sd_past (sd, n, Last)) rsh)
-     | Last ->
-       (try Option.value_exn (Rsh.find_past_last_def rsh n sd) with
-       | _ -> raise (Sd_not_found (Sd.pack sd, -1)))
-     | Unsafe ->
-       (try Option.value_exn (Rsh.find_past rsh n sd) with
-       | _ -> raise (Sd_not_found (Sd.pack sd, n)))
+       (match Rsh.find_past_last_def rsh n sd with
+       | None -> None
+       | Some s -> Some s)
      | Op -> Rsh.find_past rsh n sd)
    | Sd_history (sd, _size) -> fun i -> Rsh.find_past rsh i sd
    | State sd_set -> Rs.trim_to (Rsh.curr_state rsh) sd_set
